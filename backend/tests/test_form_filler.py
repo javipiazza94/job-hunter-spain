@@ -39,3 +39,11 @@ def test_map_field_unknown_returns_none():
     from automation.ats_handlers.generic import _map_field
     profile = {"personal": {"name": "Juan García", "email": "j@e.com", "phone": "", "linkedin": ""}}
     assert _map_field("random_unknown_field_xyz", profile) is None
+
+def test_workday_handler_importable():
+    from automation.ats_handlers.workday import fill_workday
+    assert callable(fill_workday)
+
+def test_greenhouse_handler_importable():
+    from automation.ats_handlers.greenhouse import fill_greenhouse
+    assert callable(fill_greenhouse)
