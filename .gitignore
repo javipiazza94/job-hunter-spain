@@ -1,0 +1,13 @@
+.env
+.env.*
+*.db
+*.pem
+__pycache__/
+.venv/
+node_modules/
+.next/
+backend/cv/
+*.log
+.claude/settings.local.json
+backend/sessions/*
+!backend/sessions/.gitkeep
