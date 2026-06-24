@@ -47,3 +47,11 @@ def test_workday_handler_importable():
 def test_greenhouse_handler_importable():
     from automation.ats_handlers.greenhouse import fill_greenhouse
     assert callable(fill_greenhouse)
+
+def test_lever_handler_importable():
+    from automation.ats_handlers.lever import fill_lever
+    assert callable(fill_lever)
+
+def test_successfactors_handler_importable():
+    from automation.ats_handlers.successfactors import fill_successfactors
+    assert callable(fill_successfactors)
