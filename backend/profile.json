@@ -1,0 +1,57 @@
+{
+  "personal": {
+    "name": "Javier Piazza",
+    "email": "javipiazza94@gmail.com",
+    "phone": "+34 618 809 725",
+    "address": "Felipe II 28",
+    "city": "Sevilla",
+    "postal_code": "41013",
+    "linkedin": "https://www.linkedin.com/in/javier-puente-piazza-programador-data-scientist/",
+    "github": "https://github.com/javipiazza94",
+    "portfolio": "https://javi-piazza-web.vercel.app/"
+  },
+  "cv_path": "./cv/cv_ia.pdf",
+  "cv_sap_path": "./cv/cv_sap.pdf",
+  "cv_ia_path": "./cv/cv_ia.pdf",
+  "stack": {
+    "primary": ["Python", "FastAPI", "Django", "React", "Next.js", "Data Science"],
+    "secondary": ["SAP Public Cloud", "SAP BTP", "DevOps", ".NET", "Docker", "SQL", "Playwright", "Machine Learning", "LLM"],
+    "tools": ["Git", "GitHub", "SQLite", "PostgreSQL", "Tailwind CSS", "TypeScript"],
+    "certifications": ["DAM — Desarrollo de Aplicaciones Multiplataforma", "SAP Public Cloud Practitioner"]
+  },
+  "experience": [
+    {
+      "company": "AQR Systems",
+      "role": "DevOps Engineer",
+      "start": "2023-06",
+      "end": "2024-04",
+      "duration_months": 10,
+      "description": "Automatización de procesos con .NET y scraping web. CI/CD, pipelines, despliegue en producción.",
+      "stack": [".NET", "C#", "Scraping", "DevOps", "Docker"]
+    },
+    {
+      "company": "Aidea Legal",
+      "role": "Python Developer / AI Engineer",
+      "start": "2024-05",
+      "end": "2025-09",
+      "duration_months": 17,
+      "description": "Desarrollo de aplicaciones de Inteligencia Artificial en Python. LLMs, RAG, agentes, APIs con FastAPI, integración con Ollama y modelos open-source.",
+      "stack": ["Python", "FastAPI", "LLM", "RAG", "Ollama", "Playwright", "SQLite", "Next.js", "React"]
+    }
+  ],
+  "education": [
+    {
+      "title": "DAM — Desarrollo de Aplicaciones Multiplataforma",
+      "institution": "",
+      "year": "2023"
+    },
+    {
+      "title": "Data Science & Machine Learning",
+      "institution": "",
+      "year": "2024"
+    }
+  ],
+  "cover_letter_intro": "Me dirijo a ustedes para expresar mi interés en unirme al equipo de {company_name}. Con formación en DAM y Data Science, y experiencia real en DevOps y automatización (AQR Systems, 10 meses) y desarrollo de aplicaciones IA en Python (Aidea Legal, 17 meses), busco un entorno donde seguir creciendo técnicamente.",
+  "cover_letter_stack": "Mi stack principal incluye Python (FastAPI, Django), React/Next.js, Data Science/ML, SAP Public Cloud y herramientas DevOps (Docker, CI/CD). En los últimos meses he trabajado con LLMs, RAG y agentes de IA en proyectos reales.",
+  "cover_letter_closing": "Quedo a su disposición para cualquier proceso de selección o entrevista. Adjunto mi CV para su revisión.\n\nAtentamente,\nJavier Piazza"
+}

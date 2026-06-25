@@ -1,0 +1,76 @@
+"""
+automation/email_sender.py — Sends application emails via Gmail SMTP.
+Requires GMAIL_USER and GMAIL_APP_PASSWORD env vars.
+"""
+import smtplib
+import logging
+import random
+import time
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+from pathlib import Path
+from config import (
+    GMAIL_USER, GMAIL_APP_PASSWORD, SMTP_HOST, SMTP_PORT,
+    EMAIL_DELAY_MIN, EMAIL_DELAY_MAX
+)
+
+logger = logging.getLogger(__name__)
+
+
+def _build_message(to: str, subject: str, body: str, cv_path: Path | None) -> MIMEMultipart:
+    msg = MIMEMultipart()
+    msg["From"] = GMAIL_USER
+    msg["To"] = to
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain", "utf-8"))
+
+    if cv_path and cv_path.exists():
+        with cv_path.open("rb") as f:
+            part = MIMEBase("application", "octet-stream")
+            part.set_payload(f.read())
+        encoders.encode_base64(part)
+        part.add_header("Content-Disposition", f"attachment; filename={cv_path.name}")
+        msg.attach(part)
+    return msg
+
+
+def send_email(
+    to: str,
+    subject: str,
+    body: str,
+    cv_path: Path | None = None,
+    dry_run: bool = False,
+) -> bool:
+    """Send email. Returns True on success."""
+    if not GMAIL_USER or not GMAIL_APP_PASSWORD:
+        logger.error("GMAIL_USER / GMAIL_APP_PASSWORD not set in environment.")
+        return False
+
+    if dry_run:
+        logger.info("[DRY-RUN] Would send email to %s: %s", to, subject)
+        return True
+
+    try:
+        msg = _build_message(to, subject, body, cv_path)
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.ehlo()
+            server.starttls()
+            server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
+            server.sendmail(GMAIL_USER, to, msg.as_string())
+        logger.info("Email sent to %s", to)
+        return True
+    except Exception as e:
+        logger.error("Failed to send email to %s: %s", to, e)
+        return False
+
+
+def rate_limited_send(
+    to: str, subject: str, body: str, cv_path: Path | None = None, dry_run: bool = False
+) -> bool:
+    result = send_email(to, subject, body, cv_path, dry_run)
+    delay = random.uniform(EMAIL_DELAY_MIN, EMAIL_DELAY_MAX)
+    logger.debug("Rate limit: sleeping %.0fs before next email", delay)
+    time.sleep(delay)
+    return result

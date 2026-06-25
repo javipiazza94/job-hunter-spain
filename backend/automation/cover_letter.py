@@ -4,7 +4,7 @@ Supports variant_seed for deterministic cover letter variation per company.
 """
 import json
 from pathlib import Path
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 from config import PROFILE_PATH, TEMPLATES_DIR
 
 
@@ -30,7 +30,7 @@ def generate(
     tmpl_name = f"cover_letter_{template}.j2"
     try:
         tmpl = env.get_template(tmpl_name)
-    except Exception:
+    except TemplateNotFound:
         tmpl = env.get_template("cover_letter_base.j2")
 
     personal = profile.get("personal", {})

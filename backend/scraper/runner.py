@@ -99,11 +99,12 @@ async def run_sap_source(dry_run: bool, max_pages: int):
         for offer in offers:
             if not offer.get("url"):
                 continue
+            company_name = offer.get("company_name") or "Desconocida"
             row = conn.execute(
-                "SELECT id FROM companies WHERE name=?", (offer.get("company_name", ""),)
+                "SELECT id FROM companies WHERE name=?", (company_name,)
             ).fetchone()
             cid = row["id"] if row else upsert_company(
-                conn, {"name": offer.get("company_name", "Desconocida"), "source": offer.get("source", "sap")}
+                conn, {"name": company_name, "source": offer.get("source", "sap")}
             )
             sc = score_offer(offer)
             upsert_job_offer(conn, {
