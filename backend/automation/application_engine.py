@@ -4,7 +4,6 @@ automation/application_engine.py — Orchestrates CV submissions in two stages:
   2. send_approved(id) — approves and sends a single pending application
 """
 import logging
-import uuid
 from datetime import date, datetime
 from pathlib import Path
 import sys
@@ -17,7 +16,6 @@ from database import (
     get_pending_offers,
     record_application,
     record_history,
-    get_pending_applications,
 )
 from automation.cover_letter import generate as generate_letter
 from automation.email_sender import rate_limited_send
@@ -119,6 +117,7 @@ def create_drafts(limit: int | None = None) -> dict:
             variant_seed=offer["company_name"] + (offer.get("title") or ""),
         )
 
+        # record_application commits internally
         record_application(conn, {
             "company_id": offer["company_id"],
             "job_offer_id": offer["id"],
@@ -142,9 +141,6 @@ def send_approved(application_id: str) -> bool:
     Raises ValueError if not found or daily limit reached.
     Returns True on success.
     """
-    profile = _load_profile()
-    personal = profile.get("personal", {})
-
     conn = get_conn()
 
     today_count = _emails_sent_today(conn)
@@ -166,6 +162,9 @@ def send_approved(application_id: str) -> bool:
     if not row:
         conn.close()
         raise ValueError(f"Application {application_id} not found or not in pending_approval status.")
+
+    profile = _load_profile()
+    personal = profile.get("personal", {})
 
     app = dict(row)
     cv_profile = app.get("cv_profile") or "ia_dev"
