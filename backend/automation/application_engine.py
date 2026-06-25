@@ -18,7 +18,8 @@ from database import (
     record_history,
 )
 from automation.cover_letter import generate as generate_letter
-from automation.email_sender import rate_limited_send
+from automation.email_sender import send_email
+from automation.filter_engine import classify_profile
 
 logging.basicConfig(
     level=logging.INFO,
@@ -90,7 +91,7 @@ def create_drafts(limit: int | None = None) -> dict:
             break
 
         offer = dict(offer)
-        cv_profile = offer.get("cv_profile") or "ia_dev"
+        cv_profile, _confidence = classify_profile(offer)
 
         if cv_profile == "manual_review":
             results["skipped_manual_review"] += 1
@@ -101,6 +102,11 @@ def create_drafts(limit: int | None = None) -> dict:
         if not contact:
             results["skipped_no_contact"] += 1
             logger.info("SKIP no_contact: %s", offer.get("company_name"))
+            continue
+
+        if contact.get("type") != "email":
+            results["skipped_no_contact"] += 1
+            logger.info("SKIP non-email contact (%s): %s", contact.get("type"), offer.get("company_name"))
             continue
 
         if _is_recently_contacted(conn, offer["company_id"], contact["value"]):
@@ -177,7 +183,7 @@ def send_approved(application_id: str) -> bool:
         else f"Candidatura — {personal.get('name', '')}"
     )
 
-    success = rate_limited_send(
+    success = send_email(
         to=app["contact_value"],
         subject=subject,
         body=body,

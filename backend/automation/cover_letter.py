@@ -2,6 +2,7 @@
 automation/cover_letter.py — Generates personalised cover letters via Jinja2.
 Supports variant_seed for deterministic cover letter variation per company.
 """
+import hashlib
 import json
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
@@ -13,8 +14,9 @@ def _load_profile() -> dict:
 
 
 def _pick_variant(variants: list[str], seed: str) -> str:
-    """Return one variant deterministically based on seed."""
-    return variants[hash(seed) % len(variants)]
+    """Return one variant deterministically based on seed (stable across restarts)."""
+    idx = int(hashlib.md5(seed.encode()).hexdigest(), 16) % len(variants)
+    return variants[idx]
 
 
 def generate(
@@ -35,7 +37,7 @@ def generate(
 
     personal = profile.get("personal", {})
     seed = variant_seed or (company_name + (job_title or ""))
-    variant_index = hash(seed) % 3
+    variant_index = int(_pick_variant(["0", "1", "2"], seed))
 
     return tmpl.render(
         company_name=company_name,
