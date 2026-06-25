@@ -1,0 +1,133 @@
+const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8020";
+
+export async function fetchStats() {
+  const res = await fetch(`${BASE}/api/stats`);
+  return res.json();
+}
+
+export async function fetchCompanies(params?: { sector?: string; country?: string }) {
+  const qs = new URLSearchParams(params as Record<string, string>).toString();
+  const res = await fetch(`${BASE}/api/companies${qs ? `?${qs}` : ""}`);
+  return res.json();
+}
+
+export async function fetchOffers(relevantOnly = false) {
+  const res = await fetch(`${BASE}/api/offers?relevant_only=${relevantOnly}`);
+  return res.json();
+}
+
+export async function fetchApplications(status?: string) {
+  const qs = status ? `?status=${status}` : "";
+  const res = await fetch(`${BASE}/api/applications${qs}`);
+  return res.json();
+}
+
+export async function updateApplicationStatus(id: string, status: string) {
+  const res = await fetch(`${BASE}/api/applications/${id}/status?status=${status}`, {
+    method: "PATCH",
+  });
+  return res.json();
+}
+
+export async function fetchContacts() {
+  const res = await fetch(`${BASE}/api/contacts`);
+  return res.json();
+}
+
+export async function triggerScraper(source: string) {
+  const res = await fetch(`${BASE}/api/scraper/run?source=${source}`, { method: "POST" });
+  return res.json();
+}
+
+export async function triggerApplications() {
+  const res = await fetch(`${BASE}/api/applications/run`, { method: "POST" });
+  return res.json();
+}
+
+export async function createDrafts(limit?: number): Promise<{ drafts_created: number; skipped_manual_review: number; skipped_duplicate: number; skipped_no_contact: number }> {
+  const qs = limit !== undefined ? `?limit=${limit}` : "";
+  const res = await fetch(`${BASE}/api/applications/create-drafts${qs}`, { method: "POST" });
+  return res.json();
+}
+
+export async function fetchPendingApplications(): Promise<PendingApplication[]> {
+  const res = await fetch(`${BASE}/api/applications/pending`);
+  return res.json();
+}
+
+export async function approveApplication(id: string): Promise<{ id: string; success: boolean; status: string }> {
+  const res = await fetch(`${BASE}/api/applications/${id}/approve`, { method: "POST" });
+  return res.json();
+}
+
+export async function updateCoverLetter(id: string, coverLetterEdited: string): Promise<{ id: string; updated: boolean }> {
+  const res = await fetch(`${BASE}/api/applications/${id}/cover-letter`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ cover_letter_edited: coverLetterEdited }),
+  });
+  return res.json();
+}
+
+export async function rejectApplication(id: string): Promise<{ id: string; status: string }> {
+  const res = await fetch(`${BASE}/api/applications/${id}/reject`, { method: "POST" });
+  return res.json();
+}
+
+export async function fetchDashboardStats(): Promise<DashboardStats> {
+  const res = await fetch(`${BASE}/api/stats/dashboard`);
+  return res.json();
+}
+
+export async function fetchHistory(params?: { company?: string; profile?: string; outcome?: string }): Promise<HistoryEntry[]> {
+  const qs = new URLSearchParams(params as Record<string, string>).toString();
+  const res = await fetch(`${BASE}/api/history${qs ? `?${qs}` : ""}`);
+  return res.json();
+}
+
+export async function exportHistoryCSV(): Promise<void> {
+  const res = await fetch(`${BASE}/api/history/export?format=csv`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `job_hunter_history_${new Date().toISOString().split("T")[0]}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Types used by the new functions
+export interface PendingApplication {
+  id: string;
+  company_name: string | null;
+  job_title: string | null;
+  contact_value: string | null;
+  contact_type: string | null;
+  cover_letter_used: string | null;
+  cover_letter_edited: string | null;
+  cv_profile: string | null;
+  method: string;
+}
+
+export interface DashboardStats {
+  sent_this_week: number;
+  pending_approval: number;
+  total_sent: number;
+  response_rate: number;
+  sap_ratio: number;
+  ia_dev_ratio: number;
+}
+
+export interface HistoryEntry {
+  id: string;
+  company_name: string;
+  company_domain: string;
+  email_used: string;
+  profile_used: string;
+  sent_at: string;
+  outcome: string;
+  notes: string | null;
+  application_id: string | null;
+}
