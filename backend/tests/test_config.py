@@ -23,3 +23,21 @@ def test_sessions_paths_defined():
     from config import SESSIONS_DIR, LINKEDIN_SESSION_PATH
     assert "sessions" in str(SESSIONS_DIR)
     assert str(LINKEDIN_SESSION_PATH).endswith(".json")
+
+def test_new_profile_constants_exist():
+    from config import (
+        SAP_PROFILE_KEYWORDS,
+        IADEV_PROFILE_KEYWORDS,
+        PROFILE_CONFIDENCE_THRESHOLD,
+        RECONTACT_COOLDOWN_DAYS,
+    )
+    assert isinstance(SAP_PROFILE_KEYWORDS, list)
+    assert len(SAP_PROFILE_KEYWORDS) >= 10
+    assert isinstance(IADEV_PROFILE_KEYWORDS, list)
+    assert len(IADEV_PROFILE_KEYWORDS) >= 10
+    assert 0.0 < PROFILE_CONFIDENCE_THRESHOLD < 1.0
+    assert RECONTACT_COOLDOWN_DAYS > 0
+
+def test_max_emails_per_day_is_15():
+    from config import MAX_EMAILS_PER_DAY
+    assert MAX_EMAILS_PER_DAY == 15

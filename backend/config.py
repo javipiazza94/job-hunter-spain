@@ -61,8 +61,29 @@ NEGATIVE_KEYWORDS = [
     "mainframe", "pl/sql dba", "director", "cto", "ceo",
 ]
 
+# ── Profile classification ────────────────────────────────────────────────────
+SAP_PROFILE_KEYWORDS = [
+    "sap", "abap", "btp", "s/4hana", "s4hana", "hana", "fiori",
+    "sap ps", "sap mm", "sap sd", "sap fi", "sap co", "sap pp",
+    "successfactors", "rise with sap", "sap public cloud",
+    "consultor funcional", "consultor sap", "sap consultant",
+    "erp", "sap cloud",
+]
+
+IADEV_PROFILE_KEYWORDS = [
+    "python", "fastapi", "django", "react", "next.js", "nextjs",
+    "typescript", "javascript", "llm", "machine learning", "ml",
+    "data scientist", "data engineer", "ai engineer", "ia",
+    "inteligencia artificial", "full stack", "fullstack",
+    "backend developer", "frontend developer", "devops",
+    "automatización", "scraping", "playwright", "rag",
+]
+
+PROFILE_CONFIDENCE_THRESHOLD = 0.2
+RECONTACT_COOLDOWN_DAYS = 180
+
 # ── Application Engine ────────────────────────────────────────────────────────
-MAX_EMAILS_PER_DAY = 20
+MAX_EMAILS_PER_DAY = 15
 EMAIL_DELAY_MIN = 30    # seconds between sends
 EMAIL_DELAY_MAX = 120
 
@@ -84,13 +105,13 @@ SAP_KEYWORDS = [
 ]
 
 SAP_COMPANIES_DIRECT = [
-    {"name": "SEIDOR",           "careers_url": "https://www.seidor.com/es/trabaja-con-nosotros"},
-    {"name": "STRATESYS",        "careers_url": "https://www.stratesys.es/es/trabaja-con-nosotros"},
-    {"name": "NTT Data Spain",   "careers_url": "https://es.nttdata.com/careers"},
-    {"name": "Capgemini Spain",  "careers_url": "https://www.capgemini.com/es-es/carreras/"},
+    {"name": "SEIDOR",           "careers_url": "https://www.seidor.com/es-es/talento"},
+    # STRATESYS: ERR_CERT_COMMON_NAME_INVALID — SSL roto en su lado
+    {"name": "NTT Data Spain",   "careers_url": "https://careers.services.global.ntt/global/en"},
+    {"name": "Capgemini Spain",  "careers_url": "https://jobs.capgemini.com/es/"},
     {"name": "Accenture Spain",  "careers_url": "https://www.accenture.com/es-es/careers"},
-    {"name": "Indra",            "careers_url": "https://www.indracompany.com/es/trabaja-indra"},
-    {"name": "T-Systems Iberia", "careers_url": "https://www.t-systems.com/es/es/sobre-t-systems/empleo"},
+    {"name": "Indra",            "careers_url": "https://careers.indragroup.com/ofertas-de-empleo"},
+    {"name": "T-Systems Iberia", "careers_url": "https://www.t-systems.com/es/es"},
 ]
 
 LINKEDIN_SAP_SEARCHES = [
