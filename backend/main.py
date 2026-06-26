@@ -13,6 +13,7 @@ from fastapi.responses import StreamingResponse
 import logging
 
 from config import CORS_ORIGINS, API_PORT
+from automation.filter_engine import classify_profile
 from database import (
     get_conn, init_db, get_all_companies, get_pending_offers, stats as db_stats,
     get_pending_applications, get_history, record_history, get_dashboard_stats,
@@ -61,6 +62,17 @@ def get_companies(sector: str | None = None, country: str | None = None):
     return data
 
 
+def _parse_modality(location: str | None) -> str:
+    if not location:
+        return "presencial"
+    loc = location.lower()
+    if "remoto" in loc or "remote" in loc:
+        return "remoto"
+    if "híbrido" in loc or "hibrido" in loc or "hybrid" in loc:
+        return "hibrido"
+    return "presencial"
+
+
 @app.get("/api/offers")
 def get_offers(relevant_only: bool = False, source: str | None = None):
     conn = get_conn()
@@ -77,7 +89,14 @@ def get_offers(relevant_only: bool = False, source: str | None = None):
     query += " ORDER BY jo.relevance_score DESC"
     rows = conn.execute(query, params).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    result = []
+    for r in rows:
+        offer = dict(r)
+        profile, _ = classify_profile(offer)
+        offer["cv_profile"] = profile
+        offer["modality"] = _parse_modality(offer.get("location"))
+        result.append(offer)
+    return result
 
 
 @app.get("/api/applications")
@@ -99,14 +118,34 @@ def get_applications(status: str | None = None):
 @app.get("/api/contacts")
 def get_contacts():
     conn = get_conn()
-    rows = conn.execute("""
+    contacts = conn.execute("""
         SELECT ct.*, c.name as company_name, c.website as company_website
         FROM contacts ct
         LEFT JOIN companies c ON c.id = ct.company_id
         ORDER BY ct.created_at DESC
     """).fetchall()
+    offers_rows = conn.execute("""
+        SELECT id, company_id, title, url, relevance_score, location
+        FROM job_offers WHERE is_relevant = 1
+        ORDER BY relevance_score DESC
+    """).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    offers_by_company: dict = {}
+    for o in offers_rows:
+        cid = o["company_id"]
+        if cid not in offers_by_company:
+            offers_by_company[cid] = []
+        offers_by_company[cid].append({
+            "id": o["id"], "title": o["title"],
+            "url": o["url"], "relevance_score": o["relevance_score"],
+            "location": o["location"],
+        })
+    result = []
+    for ct in contacts:
+        d = dict(ct)
+        d["offers"] = offers_by_company.get(ct["company_id"], [])
+        result.append(d)
+    return result
 
 
 @app.patch("/api/applications/{app_id}/status")

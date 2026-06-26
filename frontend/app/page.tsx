@@ -34,6 +34,16 @@ interface JobOffer {
   relevance_score: number;
   url: string | null;
   description: string | null;
+  cv_profile: string | null;
+  modality: string | null;
+}
+
+interface ContactOffer {
+  id: string;
+  title: string;
+  url: string | null;
+  relevance_score: number;
+  location: string | null;
 }
 
 interface Contact {
@@ -43,6 +53,7 @@ interface Contact {
   method: string | null;
   company_name: string | null;
   company_website: string | null;
+  offers: ContactOffer[];
 }
 
 interface Application {
@@ -86,6 +97,9 @@ export default function Dashboard() {
   const [pendingApps, setPendingApps] = useState<PendingApplication[]>([]);
   const [tab, setTab] = useState<"companies" | "offers" | "contacts" | "applications" | "pending">("offers");
   const [countryFilter, setCountryFilter] = useState("ES");
+  const [profileFilter, setProfileFilter] = useState("all");
+  const [modalityFilter, setModalityFilter] = useState("all");
+  const [locationSearch, setLocationSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState("");
 
@@ -128,6 +142,26 @@ export default function Dashboard() {
       setLoading(false);
     }
   };
+
+  const filteredOffers = offers.filter(o => {
+    if (profileFilter !== "all" && o.cv_profile !== profileFilter) return false;
+    if (modalityFilter !== "all" && o.modality !== modalityFilter) return false;
+    if (locationSearch && !o.location?.toLowerCase().includes(locationSearch.toLowerCase())) return false;
+    return true;
+  });
+
+  const PROFILE_BADGE: Record<string, string> = {
+    sap: "bg-blue-100 text-blue-700",
+    ia_dev: "bg-purple-100 text-purple-700",
+    manual_review: "bg-yellow-100 text-yellow-700",
+  };
+  const PROFILE_LABEL: Record<string, string> = { sap: "SAP", ia_dev: "IA/Dev", manual_review: "Revisar" };
+  const MODALITY_BADGE: Record<string, string> = {
+    remoto: "bg-green-100 text-green-700",
+    hibrido: "bg-amber-100 text-amber-700",
+    presencial: "bg-gray-100 text-gray-600",
+  };
+  const MODALITY_LABEL: Record<string, string> = { remoto: "Remoto", hibrido: "Híbrido", presencial: "Presencial" };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -210,6 +244,34 @@ export default function Dashboard() {
 
         {tab === "offers" && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-3 border-b border-gray-100 flex flex-wrap items-center gap-3">
+              <div className="flex gap-1">
+                {(["all","sap","ia_dev","manual_review"] as const).map(p => (
+                  <button key={p} onClick={() => setProfileFilter(p)}
+                    className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${profileFilter === p ? (p === "all" ? "bg-gray-800 text-white" : PROFILE_BADGE[p] + " ring-1 ring-current") : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+                    {p === "all" ? "Todos" : PROFILE_LABEL[p]}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-1">
+                {(["all","remoto","hibrido","presencial"] as const).map(m => (
+                  <button key={m} onClick={() => setModalityFilter(m)}
+                    className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${modalityFilter === m ? (m === "all" ? "bg-gray-800 text-white" : MODALITY_BADGE[m] + " ring-1 ring-current") : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+                    {m === "all" ? "Todas" : MODALITY_LABEL[m]}
+                  </button>
+                ))}
+              </div>
+              <input
+                value={locationSearch} onChange={e => setLocationSearch(e.target.value)}
+                placeholder="Buscar ciudad…"
+                className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 w-36"
+              />
+              {(profileFilter !== "all" || modalityFilter !== "all" || locationSearch) && (
+                <button onClick={() => { setProfileFilter("all"); setModalityFilter("all"); setLocationSearch(""); }}
+                  className="text-xs text-gray-400 hover:text-gray-600">✕ Limpiar</button>
+              )}
+              <span className="text-xs text-gray-400 ml-auto">{filteredOffers.length} de {offers.length}</span>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-gray-600 uppercase text-xs tracking-wide">
@@ -217,12 +279,12 @@ export default function Dashboard() {
                     <th className="text-left px-4 py-3">Oferta</th>
                     <th className="text-left px-4 py-3">Empresa</th>
                     <th className="text-left px-4 py-3">Ubicación</th>
+                    <th className="text-left px-4 py-3">Perfil</th>
                     <th className="text-right px-4 py-3">Score</th>
-                    <th className="text-left px-4 py-3">Link</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {offers.map((o) => (
+                  {filteredOffers.map((o) => (
                     <tr key={o.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 font-medium text-gray-900 max-w-xs">
                         {o.url ? (
@@ -230,16 +292,17 @@ export default function Dashboard() {
                         ) : o.title}
                       </td>
                       <td className="px-4 py-3 text-gray-600">{o.company_name || "—"}</td>
-                      <td className="px-4 py-3 text-gray-500">{o.location || "—"}</td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">
+                        <div>{o.location || "—"}</div>
+                        {o.modality && <span className={`mt-0.5 inline-block px-1.5 py-0.5 rounded text-xs font-medium ${MODALITY_BADGE[o.modality] ?? ""}`}>{MODALITY_LABEL[o.modality] ?? o.modality}</span>}
+                      </td>
+                      <td className="px-4 py-3">
+                        {o.cv_profile && <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${PROFILE_BADGE[o.cv_profile] ?? "bg-gray-100 text-gray-600"}`}>{PROFILE_LABEL[o.cv_profile] ?? o.cv_profile}</span>}
+                      </td>
                       <td className="px-4 py-3 text-right">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${o.relevance_score >= 0.8 ? "bg-green-100 text-green-700" : o.relevance_score >= 0.65 ? "bg-yellow-100 text-yellow-700" : "bg-gray-100 text-gray-600"}`}>
                           {(o.relevance_score * 100).toFixed(0)}%
                         </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {o.url && (
-                          <a href={o.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs">Ver →</a>
-                        )}
                       </td>
                     </tr>
                   ))}
@@ -318,24 +381,41 @@ export default function Dashboard() {
                   <thead className="bg-gray-50 text-gray-600 uppercase text-xs tracking-wide">
                     <tr>
                       <th className="text-left px-4 py-3">Contacto</th>
-                      <th className="text-left px-4 py-3">Tipo</th>
                       <th className="text-left px-4 py-3">Empresa</th>
-                      <th className="text-left px-4 py-3">Método</th>
-                      <th className="text-left px-4 py-3">Web</th>
+                      <th className="text-left px-4 py-3">Ofertas relevantes</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {contacts.map((ct) => (
-                      <tr key={ct.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 font-mono text-xs text-blue-700">{ct.value}</td>
+                      <tr key={ct.id} className="hover:bg-gray-50 transition-colors align-top">
                         <td className="px-4 py-3">
-                          <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">{ct.type || "email"}</span>
+                          <div className="font-mono text-xs text-blue-700">{ct.value}</div>
+                          <span className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded text-xs">{ct.type || "email"}</span>
                         </td>
-                        <td className="px-4 py-3 text-gray-600">{ct.company_name || "—"}</td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">{ct.method || "—"}</td>
+                        <td className="px-4 py-3 text-gray-600 text-sm">
+                          <div>{ct.company_name || "—"}</div>
+                          {ct.company_website && <a href={ct.company_website} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-xs">web →</a>}
+                        </td>
                         <td className="px-4 py-3">
-                          {ct.company_website && (
-                            <a href={ct.company_website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs">Ver →</a>
+                          {ct.offers.length === 0 ? (
+                            <span className="text-xs text-gray-400">Sin ofertas activas</span>
+                          ) : (
+                            <div className="flex flex-col gap-1">
+                              {ct.offers.slice(0, 4).map(o => (
+                                <div key={o.id} className="flex items-center gap-2">
+                                  {o.url ? (
+                                    <a href={o.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline truncate max-w-xs">{o.title}</a>
+                                  ) : (
+                                    <span className="text-xs text-gray-700 truncate max-w-xs">{o.title}</span>
+                                  )}
+                                  <span className="text-xs text-gray-400 shrink-0">{o.location || ""}</span>
+                                  <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${o.relevance_score >= 0.8 ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                                    {(o.relevance_score * 100).toFixed(0)}%
+                                  </span>
+                                </div>
+                              ))}
+                              {ct.offers.length > 4 && <span className="text-xs text-gray-400">+{ct.offers.length - 4} más</span>}
+                            </div>
                           )}
                         </td>
                       </tr>

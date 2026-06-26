@@ -65,6 +65,13 @@ def classify_profile(offer: dict) -> tuple[str, float]:
     if sap_hits == 0 and iadev_hits == 0:
         return ("manual_review", 0.0)
 
+    # Clear winner: one side has hits, other has none — classify directly
+    if sap_hits > 0 and iadev_hits == 0:
+        return ("sap", sap_hits / len(SAP_PROFILE_KEYWORDS))
+    if iadev_hits > 0 and sap_hits == 0:
+        return ("ia_dev", iadev_hits / len(IADEV_PROFILE_KEYWORDS))
+
+    # Both have hits — use threshold to resolve ambiguity
     sap_score = sap_hits / len(SAP_PROFILE_KEYWORDS)
     iadev_score = iadev_hits / len(IADEV_PROFILE_KEYWORDS)
     diff = abs(sap_score - iadev_score)
