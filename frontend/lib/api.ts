@@ -11,8 +11,32 @@ export async function fetchCompanies(params?: { sector?: string; country?: strin
   return res.json();
 }
 
-export async function fetchOffers(relevantOnly = false) {
-  const res = await fetch(`${BASE}/api/offers?relevant_only=${relevantOnly}`);
+export interface OfferFilters {
+  relevant_only?: boolean;
+  source?: string;
+  salary_min?: number;
+  salary_max?: number;
+  posted_after?: string;
+  min_score?: number;
+  experience_level?: string;
+  contract_type?: string;
+  stack?: string;
+  profile?: string;
+  modality?: string;
+  location?: string;
+  sort_by?: string;
+  sort_dir?: string;
+}
+
+export async function fetchOffers(filters: OfferFilters = {}) {
+  const params = new URLSearchParams();
+  for (const [key, val] of Object.entries(filters)) {
+    if (val !== undefined && val !== null && val !== "" && val !== "all") {
+      params.set(key, String(val));
+    }
+  }
+  const qs = params.toString();
+  const res = await fetch(`${BASE}/api/offers${qs ? `?${qs}` : ""}`);
   return res.json();
 }
 

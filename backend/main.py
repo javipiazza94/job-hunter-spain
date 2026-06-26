@@ -14,6 +14,7 @@ import logging
 
 from config import CORS_ORIGINS, API_PORT
 from automation.filter_engine import classify_profile
+from automation.experience_classifier import classify_experience, classify_contract
 from database import (
     get_conn, init_db, get_all_companies, get_pending_offers, stats as db_stats,
     get_pending_applications, get_history, record_history, get_dashboard_stats,
@@ -74,7 +75,22 @@ def _parse_modality(location: str | None) -> str:
 
 
 @app.get("/api/offers")
-def get_offers(relevant_only: bool = False, source: str | None = None):
+def get_offers(
+    relevant_only: bool = False,
+    source: str | None = None,
+    salary_min: int | None = None,
+    salary_max: int | None = None,
+    posted_after: str | None = None,
+    min_score: float | None = None,
+    experience_level: str | None = None,
+    contract_type: str | None = None,
+    stack: str | None = None,
+    profile: str | None = None,
+    modality: str | None = None,
+    location: str | None = None,
+    sort_by: str = "relevance_score",
+    sort_dir: str = "desc",
+):
     conn = get_conn()
     query = "SELECT jo.*, c.name as company_name FROM job_offers jo JOIN companies c ON jo.company_id = c.id"
     conditions = []
@@ -84,17 +100,63 @@ def get_offers(relevant_only: bool = False, source: str | None = None):
     if source:
         conditions.append("jo.source = ?")
         params.append(source)
+    if salary_min is not None:
+        conditions.append("jo.salary_min >= ?")
+        params.append(salary_min)
+    if salary_max is not None:
+        conditions.append("(jo.salary_max <= ? OR (jo.salary_max IS NULL AND jo.salary_min <= ?))")
+        params.extend([salary_max, salary_max])
+    if posted_after:
+        conditions.append("jo.scraped_at >= ?")
+        params.append(posted_after)
+    if min_score is not None:
+        conditions.append("jo.relevance_score >= ?")
+        params.append(min_score)
+    if experience_level:
+        conditions.append("jo.experience_level = ?")
+        params.append(experience_level)
+    if contract_type:
+        conditions.append("jo.contract_type = ?")
+        params.append(contract_type)
+    if stack:
+        # Search across title, description, and tech_stack
+        stack_terms = [s.strip() for s in stack.split(",") if s.strip()]
+        for term in stack_terms:
+            conditions.append("(LOWER(jo.title || ' ' || COALESCE(jo.description,'') || ' ' || COALESCE(jo.tech_stack,'')) LIKE ?)")
+            params.append(f"%{term.lower()}%")
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
-    query += " ORDER BY jo.relevance_score DESC"
+
+    # Sort
+    valid_sorts = {"relevance_score", "salary_min", "salary_max", "scraped_at", "title"}
+    sort_col = sort_by if sort_by in valid_sorts else "relevance_score"
+    direction = "ASC" if sort_dir.lower() == "asc" else "DESC"
+    query += f" ORDER BY jo.{sort_col} {direction}"
+
     rows = conn.execute(query, params).fetchall()
     conn.close()
     result = []
     for r in rows:
         offer = dict(r)
-        profile, _ = classify_profile(offer)
-        offer["cv_profile"] = profile
+        cv_profile, _ = classify_profile(offer)
+        offer["cv_profile"] = cv_profile
         offer["modality"] = _parse_modality(offer.get("location"))
+        # Enrich experience/contract if not already set
+        if not offer.get("experience_level"):
+            offer["experience_level"] = classify_experience(
+                offer.get("title", ""), offer.get("description")
+            )
+        if not offer.get("contract_type"):
+            offer["contract_type"] = classify_contract(
+                offer.get("title", ""), offer.get("description")
+            )
+        # Apply client-side filters for dynamically computed fields
+        if profile and profile != "all" and offer["cv_profile"] != profile:
+            continue
+        if modality and modality != "all" and offer["modality"] != modality:
+            continue
+        if location and location.lower() not in (offer.get("location") or "").lower():
+            continue
         result.append(offer)
     return result
 
@@ -171,6 +233,40 @@ def _run_scraper(source: str):
         from scraper.contact_extractor import run_contact_extractor
         asyncio.run(run_contact_extractor())
         return
+    if source == "indeed":
+        from scraper.indeed import run_indeed
+        from config import INDEED_SEARCH_KEYWORDS, INDEED_LOCATIONS
+        from automation.filter_engine import score_offer
+        offers = asyncio.run(run_indeed(INDEED_SEARCH_KEYWORDS, INDEED_LOCATIONS, max_pages=3))
+        conn = get_conn()
+        for offer in offers:
+            company_row = conn.execute(
+                "SELECT id FROM companies WHERE name = ?", (offer.get("company_name", ""),)
+            ).fetchone()
+            cid = company_row["id"] if company_row else upsert_company(conn, {
+                "name": offer.get("company_name", "Desconocida"), "source": "indeed"
+            })
+            s = score_offer(offer)
+            upsert_job_offer(conn, {**offer, "company_id": cid, "is_relevant": s >= 0.55, "relevance_score": s})
+        conn.close()
+        return
+    if source == "manfred":
+        from scraper.manfred import run_manfred
+        from automation.filter_engine import score_offer
+        offers = run_manfred()
+        conn = get_conn()
+        for offer in offers:
+            company_name = offer.get("company_name") or "Desconocida"
+            company_row = conn.execute(
+                "SELECT id FROM companies WHERE name = ?", (company_name,)
+            ).fetchone()
+            cid = company_row["id"] if company_row else upsert_company(conn, {
+                "name": company_name, "source": "manfred"
+            })
+            s = score_offer(offer)
+            upsert_job_offer(conn, {**offer, "company_id": cid, "is_relevant": s >= 0.55, "relevance_score": s})
+        conn.close()
+        return
     if source == "tecnoempleo":
         from scraper.tecnoempleo import run_tecnoempleo
         from database import upsert_company, upsert_job_offer
@@ -202,6 +298,10 @@ def trigger_scraper(source: str = "seed", background_tasks: BackgroundTasks = No
         background_tasks.add_task(_run_scraper, "tecnoempleo")
     elif source == "contacts":
         background_tasks.add_task(_run_scraper, "contacts")
+    elif source == "indeed":
+        background_tasks.add_task(_run_scraper, "indeed")
+    elif source == "manfred":
+        background_tasks.add_task(_run_scraper, "manfred")
     else:
         raise HTTPException(400, f"Unknown source: {source}")
     return {"status": "started", "source": source}

@@ -62,6 +62,78 @@ async def run_tecnoempleo_source(dry_run: bool, max_pages: int):
     logger.info("Tecnoempleo: %d offers saved to DB", saved)
 
 
+async def run_indeed_source(dry_run: bool, max_pages: int):
+    from scraper.indeed import run_indeed
+    from config import INDEED_SEARCH_KEYWORDS, INDEED_LOCATIONS
+    offers = await run_indeed(INDEED_SEARCH_KEYWORDS, INDEED_LOCATIONS, max_pages)
+    if dry_run:
+        logger.info("[DRY-RUN] Indeed: would save %d offers", len(offers))
+        for o in offers[:10]:
+            logger.info("  %s | %s | %s", o.get("title"), o.get("company_name"), o.get("location"))
+        return
+
+    conn = get_conn()
+    saved = 0
+    for offer in offers:
+        company_row = conn.execute(
+            "SELECT id FROM companies WHERE name = ?", (offer.get("company_name", ""),)
+        ).fetchone()
+        if not company_row:
+            cid = upsert_company(conn, {
+                "name": offer.get("company_name", "Desconocida"),
+                "source": "indeed",
+            })
+        else:
+            cid = company_row["id"]
+
+        score = score_offer(offer)
+        upsert_job_offer(conn, {
+            **offer,
+            "company_id": cid,
+            "is_relevant": score >= 0.55,
+            "relevance_score": score,
+        })
+        saved += 1
+    conn.close()
+    logger.info("Indeed: %d offers saved to DB", saved)
+
+
+def run_manfred_source(dry_run: bool):
+    from scraper.manfred import run_manfred
+    offers = run_manfred()
+    if dry_run:
+        logger.info("[DRY-RUN] Manfred: would save %d offers", len(offers))
+        for o in offers[:10]:
+            logger.info("  %s | %s | %s", o.get("title"), o.get("company_name"), o.get("location"))
+        return
+
+    conn = get_conn()
+    saved = 0
+    for offer in offers:
+        company_name = offer.get("company_name") or "Desconocida"
+        company_row = conn.execute(
+            "SELECT id FROM companies WHERE name = ?", (company_name,)
+        ).fetchone()
+        if not company_row:
+            cid = upsert_company(conn, {
+                "name": company_name,
+                "source": "manfred",
+            })
+        else:
+            cid = company_row["id"]
+
+        score = score_offer(offer)
+        upsert_job_offer(conn, {
+            **offer,
+            "company_id": cid,
+            "is_relevant": score >= 0.55,
+            "relevance_score": score,
+        })
+        saved += 1
+    conn.close()
+    logger.info("Manfred: %d offers saved to DB", saved)
+
+
 async def run_contacts_source(dry_run: bool):
     from scraper.contact_extractor import run_contact_extraction
     conn = get_conn()
@@ -170,7 +242,7 @@ def main():
     parser = argparse.ArgumentParser(description="Job Hunter Spain — Scraper Runner")
     parser.add_argument(
         "--source",
-        choices=["seed", "tecnoempleo", "contacts", "all", "sap", "linkedin-login"],
+        choices=["seed", "tecnoempleo", "indeed", "manfred", "contacts", "all", "sap", "linkedin-login"],
         default="seed",
         help="Data source to run",
     )
@@ -192,6 +264,14 @@ def main():
     if args.source in ("tecnoempleo", "all"):
         logger.info("── Tecnoempleo scraper ─────────────")
         asyncio.run(run_tecnoempleo_source(args.dry_run, args.max_pages))
+
+    if args.source in ("indeed", "all"):
+        logger.info("── Indeed scraper ──────────────────")
+        asyncio.run(run_indeed_source(args.dry_run, args.max_pages))
+
+    if args.source in ("manfred", "all"):
+        logger.info("── Manfred API ─────────────────────")
+        run_manfred_source(args.dry_run)
 
     if args.source in ("contacts", "all"):
         logger.info("── Contact extractor ───────────────")

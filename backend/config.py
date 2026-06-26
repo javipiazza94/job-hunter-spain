@@ -31,6 +31,18 @@ LINKEDIN_BASE = "https://www.linkedin.com/jobs/search"
 LINKEDIN_KEYWORDS = "developer OR data scientist OR devops OR SAP"
 LINKEDIN_LOCATIONS = ["Sevilla, España", "Andalucía, España", "España"]
 
+# ── Indeed ────────────────────────────────────────────────────────────────────
+INDEED_BASE = "https://es.indeed.com"
+INDEED_SEARCH_KEYWORDS = [
+    "python developer", "fullstack", "data scientist",
+    "machine learning", "devops", "react", "SAP consultor",
+]
+INDEED_LOCATIONS = ["Sevilla", "Remoto"]
+
+# ── Manfred ───────────────────────────────────────────────────────────────────
+MANFRED_API_BASE = "https://www.getmanfred.com/api/v2/public/offers"
+MANFRED_MAX_PAGES = 5
+
 # ── Filter Engine ─────────────────────────────────────────────────────────────
 MIN_RELEVANCE_SCORE = 0.55
 
@@ -95,7 +107,7 @@ SMTP_PORT = 587
 
 # ── API ───────────────────────────────────────────────────────────────────────
 API_PORT = int(os.getenv("API_PORT", "8020"))
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3010").split(",")
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3010,http://localhost:3000").split(",")
 
 # ── SAP Mode ─────────────────────────────────────────────────────────────────
 SAP_KEYWORDS = [

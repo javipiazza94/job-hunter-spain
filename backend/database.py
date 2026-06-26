@@ -108,6 +108,11 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
     _add_column(conn, "applications", "cover_letter_edited", "TEXT")
     _add_column(conn, "applications", "approved_at", "TEXT")
     _add_column(conn, "applications", "cv_profile", "TEXT")
+    # v2.0 migrations
+    _add_column(conn, "job_offers", "experience_level", "TEXT")
+    _add_column(conn, "job_offers", "contract_type", "TEXT")
+    _add_column(conn, "job_offers", "posted_date", "TEXT")
+    _add_column(conn, "job_offers", "salary_text", "TEXT")
 
 
 def _add_column(conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:

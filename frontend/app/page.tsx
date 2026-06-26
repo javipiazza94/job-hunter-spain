@@ -107,7 +107,7 @@ export default function Dashboard() {
     const [s, c, o, ct, a, p] = await Promise.all([
       fetchStats(),
       fetchCompanies({ country: countryFilter || undefined }),
-      fetchOffers(true),
+      fetchOffers({ relevant_only: true }),
       fetchContacts(),
       fetchApplications(),
       fetchPendingApplications(),
