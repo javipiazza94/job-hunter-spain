@@ -58,70 +58,49 @@ def _parse_manfred_salary(salary_data: dict | str | None) -> tuple[int | None, i
 
 def _parse_offer(raw: dict) -> dict | None:
     """Convert a Manfred API offer object to our internal format."""
-    title = raw.get("title") or raw.get("name")
+    title = raw.get("position") or raw.get("title") or raw.get("name")
     if not title:
         return None
 
-    # Build canonical URL
-    offer_id = raw.get("id") or raw.get("slug")
-    slug = raw.get("slug") or raw.get("friendlyUrl") or str(offer_id)
-    url = raw.get("url") or f"{MANFRED_WEB_BASE}/ofertas-empleo/{slug}"
+    # Build canonical URL from slug
+    slug = raw.get("slug") or str(raw.get("id", ""))
+    url = f"{MANFRED_WEB_BASE}/es/ofertas-empleo/{slug}"
 
     # Company info
     company = raw.get("company") or {}
-    company_name = (
-        company.get("name")
-        if isinstance(company, dict)
-        else str(company) if company else None
-    )
+    company_name = company.get("name") if isinstance(company, dict) else str(company) if company else None
 
-    # Location
-    location_data = raw.get("location") or raw.get("locations") or {}
-    if isinstance(location_data, dict):
-        location = location_data.get("name") or location_data.get("city")
-    elif isinstance(location_data, list):
-        location = ", ".join(
-            loc.get("name", "") if isinstance(loc, dict) else str(loc)
-            for loc in location_data[:3]
-        )
+    # Location — API v2 returns list of strings directly
+    locations_raw = raw.get("locations") or []
+    if isinstance(locations_raw, list):
+        str_locs = [str(loc) for loc in locations_raw if loc]
+        location = ", ".join(str_locs[:2]) if str_locs else None
     else:
-        location = str(location_data) if location_data else None
+        location = str(locations_raw) if locations_raw else None
 
-    # Remote policy
-    remote = raw.get("remote") or raw.get("remotePolicy")
-    if remote and location:
-        if isinstance(remote, bool) and remote:
-            location = f"{location} (Remoto)"
-        elif isinstance(remote, str) and "full" in remote.lower():
-            location = f"{location} (100% Remoto)"
+    # Remote — remotePercentage: 100 = full remote, 0 = presencial
+    remote_pct = raw.get("remotePercentage", 0)
+    if remote_pct == 100:
+        location = f"{location} (Remoto)" if location else "Remoto"
+    elif remote_pct >= 50:
+        location = f"{location} (Híbrido)" if location else "Híbrido"
 
-    # Salary
-    salary_raw = raw.get("salary") or raw.get("salaryRange")
-    salary_min, salary_max = _parse_manfred_salary(salary_raw)
+    # Salary — now flat fields salaryFrom / salaryTo
+    salary_min = raw.get("salaryFrom") or None
+    salary_max = raw.get("salaryTo") or None
     salary_text = ""
     if salary_min or salary_max:
         parts = []
         if salary_min:
-            parts.append(f"{salary_min:,}€".replace(",", "."))
+            parts.append(f"{int(salary_min):,}€".replace(",", "."))
         if salary_max:
-            parts.append(f"{salary_max:,}€".replace(",", "."))
+            parts.append(f"{int(salary_max):,}€".replace(",", "."))
         salary_text = " - ".join(parts)
-
-    # Tech tags
-    tags_raw = raw.get("tags") or raw.get("skills") or raw.get("technologies") or []
-    if isinstance(tags_raw, list):
-        tech_tags = [
-            (t.get("name") if isinstance(t, dict) else str(t))
-            for t in tags_raw
-            if t
-        ]
-    else:
-        tech_tags = []
 
     # Description
     description = raw.get("description") or raw.get("summary") or raw.get("excerpt")
 
-    # Experience level
+    # Experience — not in v2 list endpoint; leave as None
     experience = raw.get("experienceMin") or raw.get("seniority")
 
     return {
@@ -130,10 +109,10 @@ def _parse_offer(raw: dict) -> dict | None:
         "company_name": company_name,
         "location": location,
         "description": description,
-        "salary_min": salary_min,
-        "salary_max": salary_max,
+        "salary_min": int(salary_min) if salary_min else None,
+        "salary_max": int(salary_max) if salary_max else None,
         "salary_text": salary_text,
-        "tech_tags": tech_tags,
+        "tech_tags": [],
         "source": "manfred",
         "experience_level": _normalise_experience(experience),
     }
@@ -164,7 +143,7 @@ def run_manfred(max_pages: int = 5) -> list[dict]:
     seen_urls: set[str] = set()
 
     for page in range(1, max_pages + 1):
-        params: dict = {"page": page, "limit": 50}
+        params: dict = {"lang": "ES", "page": page, "limit": 50}
         url = f"{MANFRED_API_BASE}?{urlencode(params)}"
         logger.info("Manfred API page %d: %s", page, url)
 

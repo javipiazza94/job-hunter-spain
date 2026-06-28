@@ -7,8 +7,11 @@ Run: uvicorn main:app --reload --port 8020
 import csv
 import io
 from contextlib import asynccontextmanager
+# pyrefly: ignore [missing-import]
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Body
+# pyrefly: ignore [missing-import]
 from fastapi.middleware.cors import CORSMiddleware
+# pyrefly: ignore [missing-import]
 from fastapi.responses import StreamingResponse
 import logging
 
@@ -283,6 +286,22 @@ def _run_scraper(source: str):
             s = score_offer(offer)
             upsert_job_offer(conn, {**offer, "company_id": cid, "is_relevant": s >= 0.55, "relevance_score": s})
         conn.close()
+    if source == "linkedin":
+        from scraper.linkedin_jobs import run_linkedin_jobs
+        from automation.filter_engine import score_offer
+        offers = asyncio.run(run_linkedin_jobs())
+        conn = get_conn()
+        for offer in offers:
+            company_name = offer.get("company_name") or "Desconocida"
+            company_row = conn.execute(
+                "SELECT id FROM companies WHERE name = ?", (company_name,)
+            ).fetchone()
+            cid = company_row["id"] if company_row else upsert_company(conn, {
+                "name": company_name, "source": "linkedin"
+            })
+            s = score_offer(offer)
+            upsert_job_offer(conn, {**offer, "company_id": cid, "is_relevant": s >= 0.55, "relevance_score": s})
+        conn.close()
 
 
 def _run_applications():
@@ -302,6 +321,8 @@ def trigger_scraper(source: str = "seed", background_tasks: BackgroundTasks = No
         background_tasks.add_task(_run_scraper, "indeed")
     elif source == "manfred":
         background_tasks.add_task(_run_scraper, "manfred")
+    elif source == "linkedin":
+        background_tasks.add_task(_run_scraper, "linkedin")
     else:
         raise HTTPException(400, f"Unknown source: {source}")
     return {"status": "started", "source": source}
@@ -430,5 +451,6 @@ def export_history(format: str = "json"):
 
 
 if __name__ == "__main__":
+    # pyrefly: ignore [missing-import]
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=API_PORT, reload=True)

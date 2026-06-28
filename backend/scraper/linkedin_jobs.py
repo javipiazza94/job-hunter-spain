@@ -16,7 +16,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 from playwright.async_api import async_playwright, Page
 from scraper.base import BaseScraper, USER_AGENTS
-from config import LINKEDIN_SAP_SEARCHES, LINKEDIN_SESSION_PATH
+from config import LINKEDIN_ALL_SEARCHES, LINKEDIN_SESSION_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -73,29 +73,35 @@ async def run_linkedin_login() -> None:
         await playwright.stop()
 
 
+async def _scroll_to_load_cards(page: Page) -> None:
+    """Scroll the results list to trigger lazy loading of all job cards."""
+    for _ in range(6):
+        await page.evaluate("window.scrollBy(0, 600)")
+        await asyncio.sleep(0.8)
+    await asyncio.sleep(1.5)
+
+
 async def _parse_cards(page: Page, keywords: str, max_offers: int) -> list[dict]:
     """Parse job cards from the current LinkedIn jobs search page."""
-    cards = await page.query_selector_all(
-        ".job-search-card, .jobs-search__results-list li, [class*='job-card-container']"
-    )
+    await _scroll_to_load_cards(page)
+
+    cards = await page.query_selector_all("[data-job-id]")
     logger.info("LinkedIn '%s': %d cards found", keywords, len(cards))
     offers = []
     for card in cards[:max_offers]:
         try:
-            title_el = await card.query_selector(
-                ".job-search-card__title, h3, [class*='title']"
-            )
-            company_el = await card.query_selector(
-                ".job-search-card__company-name, h4, [class*='company']"
-            )
-            location_el = await card.query_selector(
-                ".job-search-card__location, [class*='location']"
-            )
-            link_el = await card.query_selector("a[href*='/jobs/view/']")
+            link_el = await card.query_selector("a[class*='job-card-list__title']")
+            title_el = await card.query_selector("a[class*='job-card-list__title'] strong")
+            company_el = await card.query_selector(".artdeco-entity-lockup__subtitle")
+            location_el = await card.query_selector(".job-card-container__metadata-wrapper li")
 
             title = (await title_el.inner_text()).strip() if title_el else None
             if not title:
+                # fallback: text content of the link itself
+                title = (await link_el.inner_text()).strip() if link_el else None
+            if not title:
                 continue
+
             company_name = (await company_el.inner_text()).strip() if company_el else None
             location_text = (await location_el.inner_text()).strip() if location_el else None
             href = await link_el.get_attribute("href") if link_el else None
@@ -165,7 +171,7 @@ async def run_linkedin_jobs(max_per_search: int = 25) -> list[dict]:
             return []
         logger.info("LinkedIn: session active, starting searches")
 
-        for search in LINKEDIN_SAP_SEARCHES:
+        for search in LINKEDIN_ALL_SEARCHES:
             try:
                 params = urlencode({
                     "keywords": search["keywords"],

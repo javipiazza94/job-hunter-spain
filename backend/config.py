@@ -133,5 +133,16 @@ LINKEDIN_SAP_SEARCHES = [
     {"keywords": "ABAP developer",    "location": "España"},
 ]
 
+LINKEDIN_IADEV_SEARCHES = [
+    {"keywords": "python developer",     "location": "España"},
+    {"keywords": "data scientist",       "location": "España"},
+    {"keywords": "machine learning LLM", "location": "España"},
+    {"keywords": "AI engineer fastapi",  "location": "España"},
+    {"keywords": "fullstack react",      "location": "Sevilla, España"},
+    {"keywords": "devops kubernetes",    "location": "España"},
+]
+
+LINKEDIN_ALL_SEARCHES = LINKEDIN_SAP_SEARCHES + LINKEDIN_IADEV_SEARCHES
+
 SESSIONS_DIR = BASE_DIR / "sessions"
 LINKEDIN_SESSION_PATH = SESSIONS_DIR / "linkedin_session.json"
