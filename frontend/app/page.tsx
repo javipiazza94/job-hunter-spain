@@ -126,6 +126,7 @@ export default function Dashboard() {
   const [sourceFilter, setSourceFilter] = useState("all");
   const [experienceFilter, setExperienceFilter] = useState("all");
   const [locationSearch, setLocationSearch] = useState("");
+  const [textSearch, setTextSearch] = useState("");
   const [countryFilter, setCountryFilter] = useState("");
   const [minScore, setMinScore] = useState(0);
 
@@ -207,6 +208,11 @@ export default function Dashboard() {
 
   const filteredOffers = offers.filter(o => {
     if (o.is_applied) return false;
+    if (textSearch) {
+      const q = textSearch.toLowerCase();
+      const haystack = `${o.title} ${o.company_name ?? ""} ${o.description ?? ""}`.toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
     if (profileFilter !== "all" && o.cv_profile !== profileFilter) return false;
     if (modalityFilter !== "all" && o.modality !== modalityFilter) return false;
     if (sourceFilter !== "all" && o.source !== sourceFilter) return false;
@@ -326,6 +332,12 @@ export default function Dashboard() {
           <div className="glass-card overflow-hidden animate-fade-in">
             {/* Filters Bar */}
             <div className="p-4 border-b border-white/5 bg-black/20 flex flex-wrap items-center gap-4">
+              <input
+                value={textSearch} onChange={e => { setTextSearch(e.target.value); setOffersPage(0); }}
+                placeholder="Buscar por título, empresa, descripción..."
+                className="bg-[#16161f] border border-white/10 text-gray-300 text-sm rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500/50 outline-none w-72 placeholder-gray-600"
+              />
+
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium uppercase tracking-wider text-gray-500">Perfil</span>
                 <select
@@ -374,6 +386,19 @@ export default function Dashboard() {
                   placeholder="Buscar ciudad..."
                   className="bg-[#16161f] border border-white/10 text-gray-300 text-sm rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500/50 outline-none w-48 placeholder-gray-600"
                 />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500">Modalidad</span>
+                <select
+                  value={modalityFilter} onChange={e => { setModalityFilter(e.target.value); setOffersPage(0); }}
+                  className="bg-[#16161f] border border-white/10 text-gray-300 text-sm rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500/50 outline-none"
+                >
+                  <option value="all">Todas</option>
+                  <option value="remoto">Remoto</option>
+                  <option value="hibrido">Híbrido</option>
+                  <option value="presencial">Presencial</option>
+                </select>
               </div>
 
               <div className="flex items-center gap-2">
