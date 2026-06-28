@@ -6,6 +6,7 @@ import smtplib
 import logging
 import random
 import time
+import uuid
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -24,6 +25,7 @@ def _build_message(to: str, subject: str, body: str, cv_path: Path | None) -> MI
     msg["From"] = GMAIL_USER
     msg["To"] = to
     msg["Subject"] = subject
+    msg["Message-ID"] = f"<{uuid.uuid4()}@jobhunter>"
     msg.attach(MIMEText(body, "plain", "utf-8"))
 
     if cv_path and cv_path.exists():
@@ -42,35 +44,37 @@ def send_email(
     body: str,
     cv_path: Path | None = None,
     dry_run: bool = False,
-) -> bool:
-    """Send email. Returns True on success."""
+) -> tuple[bool, str | None]:
+    """Send email. Returns (success, message_id)."""
     if not GMAIL_USER or not GMAIL_APP_PASSWORD:
         logger.error("GMAIL_USER / GMAIL_APP_PASSWORD not set in environment.")
-        return False
+        return False, None
 
     if dry_run:
+        dry_id = f"<dry-run-{uuid.uuid4()}@jobhunter>"
         logger.info("[DRY-RUN] Would send email to %s: %s", to, subject)
-        return True
+        return True, dry_id
 
     try:
         msg = _build_message(to, subject, body, cv_path)
+        message_id = msg["Message-ID"]
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
             server.ehlo()
             server.starttls()
             server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
             server.sendmail(GMAIL_USER, to, msg.as_string())
-        logger.info("Email sent to %s", to)
-        return True
+        logger.info("Email sent to %s (id=%s)", to, message_id)
+        return True, message_id
     except Exception as e:
         logger.error("Failed to send email to %s: %s", to, e)
-        return False
+        return False, None
 
 
 def rate_limited_send(
     to: str, subject: str, body: str, cv_path: Path | None = None, dry_run: bool = False
-) -> bool:
-    result = send_email(to, subject, body, cv_path, dry_run)
+) -> tuple[bool, str | None]:
+    result, message_id = send_email(to, subject, body, cv_path, dry_run)
     delay = random.uniform(EMAIL_DELAY_MIN, EMAIL_DELAY_MAX)
     logger.debug("Rate limit: sleeping %.0fs before next email", delay)
     time.sleep(delay)
-    return result
+    return result, message_id
