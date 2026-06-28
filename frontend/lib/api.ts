@@ -59,6 +59,16 @@ export async function fetchContacts() {
   return res.json();
 }
 
+export async function markOfferSent(offerId: string): Promise<{ id: string; created?: boolean; already_sent?: boolean }> {
+  const res = await fetch(`${BASE}/api/offers/${offerId}/mark-sent`, { method: "POST" });
+  return res.json();
+}
+
+export async function unmarkOfferSent(offerId: string): Promise<{ removed: boolean }> {
+  const res = await fetch(`${BASE}/api/offers/${offerId}/mark-sent`, { method: "DELETE" });
+  return res.json();
+}
+
 export async function triggerScraper(source: string) {
   const res = await fetch(`${BASE}/api/scraper/run?source=${source}`, { method: "POST" });
   return res.json();

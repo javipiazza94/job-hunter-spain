@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Building2, Briefcase, Send, Users, RefreshCw, Play, Check, ChevronRight } from "lucide-react";
-import { fetchStats, fetchCompanies, fetchOffers, fetchContacts, fetchApplications, triggerScraper, fetchPendingApplications, createDrafts, type PendingApplication } from "@/lib/api";
+import { fetchStats, fetchCompanies, fetchOffers, fetchContacts, fetchApplications, triggerScraper, fetchPendingApplications, createDrafts, markOfferSent, unmarkOfferSent, type PendingApplication } from "@/lib/api";
 import { PendingCard } from "@/app/components/PendingCard";
 
 interface Stats {
@@ -40,6 +40,7 @@ interface JobOffer {
   experience_level: string | null;
   contract_type: string | null;
   source: string;
+  is_applied: number;
 }
 
 interface ContactOffer {
@@ -67,6 +68,11 @@ interface Application {
   status: string;
   method: string;
   sent_at: string;
+  offer_url: string | null;
+  offer_source: string | null;
+  offer_location: string | null;
+  relevance_score: number | null;
+  job_offer_id: string | null;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -84,6 +90,7 @@ const SOURCE_COLORS: Record<string, string> = {
   manfred: "text-emerald-400 bg-emerald-400/10",
   seed: "text-purple-400 bg-purple-400/10",
   linkedin: "text-sky-400 bg-sky-400/10",
+  infojobs: "text-orange-400 bg-orange-400/10",
 };
 
 function StatCard({ icon: Icon, label, value, colorClass }: { icon: React.ElementType; label: string; value: number; colorClass: string }) {
@@ -109,6 +116,9 @@ export default function Dashboard() {
   const [pendingApps, setPendingApps] = useState<PendingApplication[]>([]);
   const [tab, setTab] = useState<"offers" | "companies" | "contacts" | "applications" | "pending">("offers");
   const [selectedOffer, setSelectedOffer] = useState<JobOffer | null>(null);
+  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   
   // Filters
   const [profileFilter, setProfileFilter] = useState("all");
@@ -117,15 +127,21 @@ export default function Dashboard() {
   const [experienceFilter, setExperienceFilter] = useState("all");
   const [locationSearch, setLocationSearch] = useState("");
   const [countryFilter, setCountryFilter] = useState("");
+  const [minScore, setMinScore] = useState(0);
+
+  // Pagination
+  const [offersPage, setOffersPage] = useState(0);
+  const OFFERS_PER_PAGE = 100;
   
   const [loading, setLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState("");
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
 
   const load = async () => {
     const [s, c, o, ct, a, p] = await Promise.all([
       fetchStats(),
       fetchCompanies(),
-      fetchOffers({ min_score: 0.2, limit: 500 }),
+      fetchOffers({ limit: 2500 }),
       fetchContacts(),
       fetchApplications(),
       fetchPendingApplications(),
@@ -147,6 +163,34 @@ export default function Dashboard() {
     setTimeout(() => { load(); setLoading(false); setActionMsg(""); }, 2000);
   };
 
+  const handleToggleSent = async (offer: JobOffer) => {
+    if (togglingIds.has(offer.id)) return;
+    setTogglingIds(prev => new Set(prev).add(offer.id));
+    if (offer.is_applied) {
+      await unmarkOfferSent(offer.id);
+      setOffers(prev => prev.map(o => o.id === offer.id ? { ...o, is_applied: 0 } : o));
+      setApplications(prev => prev.filter(a => a.job_offer_id !== offer.id));
+    } else {
+      await markOfferSent(offer.id);
+      setOffers(prev => prev.map(o => o.id === offer.id ? { ...o, is_applied: 1 } : o));
+      setApplications(prev => [{
+        id: crypto.randomUUID(),
+        company_name: offer.company_name || "Desconocida",
+        job_title: offer.title,
+        status: "sent",
+        method: "manual",
+        sent_at: new Date().toISOString(),
+        offer_url: offer.url,
+        offer_source: offer.source,
+        offer_location: offer.location,
+        relevance_score: offer.relevance_score,
+        job_offer_id: offer.id,
+      }, ...prev]);
+      setTab("applications");
+    }
+    setTogglingIds(prev => { const s = new Set(prev); s.delete(offer.id); return s; });
+  };
+
   const handleApply = async () => {
     setLoading(true);
     setActionMsg("Generando borradores...");
@@ -162,13 +206,18 @@ export default function Dashboard() {
   };
 
   const filteredOffers = offers.filter(o => {
+    if (o.is_applied) return false;
     if (profileFilter !== "all" && o.cv_profile !== profileFilter) return false;
     if (modalityFilter !== "all" && o.modality !== modalityFilter) return false;
     if (sourceFilter !== "all" && o.source !== sourceFilter) return false;
     if (experienceFilter !== "all" && o.experience_level !== experienceFilter) return false;
     if (locationSearch && !o.location?.toLowerCase().includes(locationSearch.toLowerCase())) return false;
+    if (o.relevance_score < minScore) return false;
     return true;
   });
+
+  const totalPages = Math.ceil(filteredOffers.length / OFFERS_PER_PAGE);
+  const pagedOffers = filteredOffers.slice(offersPage * OFFERS_PER_PAGE, (offersPage + 1) * OFFERS_PER_PAGE);
 
   const PROFILE_BADGE: Record<string, string> = {
     sap: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
@@ -204,7 +253,7 @@ export default function Dashboard() {
             )}
             
             <div className="flex items-center p-1 bg-white/5 rounded-xl border border-white/5">
-              {(["seed", "tecnoempleo", "indeed", "manfred", "linkedin", "contacts"] as const).map(src => (
+              {(["seed", "tecnoempleo", "infojobs", "manfred", "linkedin", "contacts"] as const).map(src => (
                 <button
                   key={src}
                   onClick={() => handleScrape(src)}
@@ -279,8 +328,8 @@ export default function Dashboard() {
             <div className="p-4 border-b border-white/5 bg-black/20 flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium uppercase tracking-wider text-gray-500">Perfil</span>
-                <select 
-                  value={profileFilter} onChange={e => setProfileFilter(e.target.value)}
+                <select
+                  value={profileFilter} onChange={e => { setProfileFilter(e.target.value); setOffersPage(0); }}
                   className="bg-[#16161f] border border-white/10 text-gray-300 text-sm rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500/50 outline-none"
                 >
                   <option value="all">Todos</option>
@@ -292,13 +341,13 @@ export default function Dashboard() {
 
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium uppercase tracking-wider text-gray-500">Fuente</span>
-                <select 
-                  value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}
+                <select
+                  value={sourceFilter} onChange={e => { setSourceFilter(e.target.value); setOffersPage(0); }}
                   className="bg-[#16161f] border border-white/10 text-gray-300 text-sm rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500/50 outline-none"
                 >
                   <option value="all">Todas</option>
                   <option value="tecnoempleo">Tecnoempleo</option>
-                  <option value="indeed">Indeed</option>
+                  <option value="infojobs">InfoJobs</option>
                   <option value="manfred">Manfred</option>
                   <option value="linkedin">LinkedIn</option>
                 </select>
@@ -307,7 +356,7 @@ export default function Dashboard() {
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium uppercase tracking-wider text-gray-500">Nivel</span>
                 <select
-                  value={experienceFilter} onChange={e => setExperienceFilter(e.target.value)}
+                  value={experienceFilter} onChange={e => { setExperienceFilter(e.target.value); setOffersPage(0); }}
                   className="bg-[#16161f] border border-white/10 text-gray-300 text-sm rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500/50 outline-none"
                 >
                   <option value="all">Todos</option>
@@ -321,10 +370,23 @@ export default function Dashboard() {
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium uppercase tracking-wider text-gray-500">Ubicación</span>
                 <input
-                  value={locationSearch} onChange={e => setLocationSearch(e.target.value)}
+                  value={locationSearch} onChange={e => { setLocationSearch(e.target.value); setOffersPage(0); }}
                   placeholder="Buscar ciudad..."
                   className="bg-[#16161f] border border-white/10 text-gray-300 text-sm rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500/50 outline-none w-48 placeholder-gray-600"
                 />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500">Score</span>
+                <select
+                  value={minScore} onChange={e => { setMinScore(Number(e.target.value)); setOffersPage(0); }}
+                  className="bg-[#16161f] border border-white/10 text-gray-300 text-sm rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500/50 outline-none"
+                >
+                  <option value={0}>Todos</option>
+                  <option value={0.5}>≥ 50%</option>
+                  <option value={0.65}>≥ 65%</option>
+                  <option value={0.8}>≥ 80%</option>
+                </select>
               </div>
 
               <div className="ml-auto flex items-center gap-4">
@@ -339,6 +401,7 @@ export default function Dashboard() {
               <table className="w-full text-sm text-left">
                 <thead className="text-xs text-gray-400 uppercase bg-black/40 border-b border-white/5 tracking-wider">
                   <tr>
+                    <th className="px-4 py-4 w-10"></th>
                     <th className="px-6 py-4 font-semibold">Oferta</th>
                     <th className="px-6 py-4 font-semibold">Empresa</th>
                     <th className="px-6 py-4 font-semibold">Ubicación & Stats</th>
@@ -346,8 +409,18 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {filteredOffers.map((o, idx) => (
+                  {pagedOffers.map((o, idx) => (
                     <tr key={o.id} className="hover:bg-white/[0.02] transition-colors stagger-row" style={{ animationDelay: `${idx * 0.03}s` }}>
+                      <td className="px-4 py-4 text-center">
+                        <button
+                          onClick={() => handleToggleSent(o)}
+                          disabled={togglingIds.has(o.id)}
+                          title={o.is_applied ? "Marcar como no enviada" : "Marcar como enviada"}
+                          className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${o.is_applied ? "bg-green-500 border-green-500 text-white" : "border-gray-600 hover:border-green-500"} disabled:opacity-40`}
+                        >
+                          {o.is_applied ? <Check className="w-3 h-3" /> : null}
+                        </button>
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1.5">
                           <button onClick={() => setSelectedOffer(o)} className="font-semibold text-left text-gray-200 hover:text-indigo-400 transition-colors inline-flex items-center gap-1">
@@ -384,6 +457,50 @@ export default function Dashboard() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-6 py-4 border-t border-white/5 bg-black/20">
+                <span className="text-sm text-gray-500">
+                  {offersPage * OFFERS_PER_PAGE + 1}–{Math.min((offersPage + 1) * OFFERS_PER_PAGE, filteredOffers.length)} de {filteredOffers.length}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setOffersPage(p => Math.max(0, p - 1))}
+                    disabled={offersPage === 0}
+                    className="px-3 py-1.5 text-sm rounded-lg border border-white/10 text-gray-400 hover:text-white hover:border-indigo-500/50 hover:bg-indigo-500/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    ‹
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i).filter(i =>
+                    i === 0 || i === totalPages - 1 || Math.abs(i - offersPage) <= 2
+                  ).reduce<(number | "…")[]>((acc, i, idx, arr) => {
+                    if (idx > 0 && i - (arr[idx - 1] as number) > 1) acc.push("…");
+                    acc.push(i);
+                    return acc;
+                  }, []).map((item, idx) =>
+                    item === "…" ? (
+                      <span key={`dots-${idx}`} className="px-2 text-gray-600">…</span>
+                    ) : (
+                      <button
+                        key={item}
+                        onClick={() => setOffersPage(item as number)}
+                        className={`px-3 py-1.5 text-sm rounded-lg border transition-all ${offersPage === item ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-300 font-bold" : "border-white/10 text-gray-400 hover:text-white hover:border-white/20"}`}
+                      >
+                        {(item as number) + 1}
+                      </button>
+                    )
+                  )}
+                  <button
+                    onClick={() => setOffersPage(p => Math.min(totalPages - 1, p + 1))}
+                    disabled={offersPage === totalPages - 1}
+                    className="px-3 py-1.5 text-sm rounded-lg border border-white/10 text-gray-400 hover:text-white hover:border-indigo-500/50 hover:bg-indigo-500/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    ›
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -447,7 +564,7 @@ export default function Dashboard() {
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {companies.map((c, idx) => (
-                    <tr key={c.id} className="hover:bg-white/[0.02] transition-colors stagger-row" style={{ animationDelay: `${idx * 0.02}s` }}>
+                    <tr key={c.id} onClick={() => setSelectedCompany(c)} className="hover:bg-white/[0.03] cursor-pointer transition-colors stagger-row" style={{ animationDelay: `${idx * 0.02}s` }}>
                       <td className="px-6 py-4 font-semibold text-gray-200">{c.name}</td>
                       <td className="px-6 py-4">
                         <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider">{c.sector}</span>
@@ -495,7 +612,7 @@ export default function Dashboard() {
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {contacts.map((ct, idx) => (
-                      <tr key={ct.id} className="hover:bg-white/[0.02] transition-colors align-top stagger-row" style={{ animationDelay: `${idx * 0.02}s` }}>
+                      <tr key={ct.id} onClick={() => setSelectedContact(ct)} className="hover:bg-white/[0.03] cursor-pointer transition-colors align-top stagger-row" style={{ animationDelay: `${idx * 0.02}s` }}>
                         <td className="px-6 py-4">
                           <div className="font-mono text-sm text-indigo-400 mb-1">{ct.value}</div>
                           <span className="bg-white/5 text-gray-400 border border-white/10 px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider">{ct.type || "email"}</span>
@@ -543,33 +660,58 @@ export default function Dashboard() {
                   <Send className="w-8 h-8 text-gray-500" />
                 </div>
                 <h3 className="text-lg font-medium text-gray-300 mb-2">Aún no hay candidaturas enviadas</h3>
-                <p className="text-sm text-gray-500">Extrae contactos, genera borradores y aprueba envíos.</p>
+                <p className="text-sm text-gray-500">Marca ofertas como enviadas o usa el motor de candidaturas.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
                   <thead className="text-xs text-gray-400 uppercase bg-black/40 border-b border-white/5 tracking-wider">
                     <tr>
+                      <th className="px-6 py-4 font-semibold">Oferta</th>
                       <th className="px-6 py-4 font-semibold">Empresa</th>
-                      <th className="px-6 py-4 font-semibold">Puesto</th>
+                      <th className="px-6 py-4 font-semibold">Ubicación</th>
                       <th className="px-6 py-4 font-semibold">Estado</th>
-                      <th className="px-6 py-4 font-semibold">Método</th>
-                      <th className="px-6 py-4 font-semibold">Fecha</th>
+                      <th className="px-6 py-4 font-semibold text-right">Score / Fecha</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {applications.map((a, idx) => (
-                      <tr key={a.id} className="hover:bg-white/[0.02] transition-colors stagger-row" style={{ animationDelay: `${idx * 0.02}s` }}>
-                        <td className="px-6 py-4 font-semibold text-gray-200">{a.company_name}</td>
-                        <td className="px-6 py-4 text-gray-400 font-medium">{a.job_title || "Candidatura espontánea"}</td>
+                      <tr
+                        key={a.id}
+                        onClick={() => setSelectedApplication(a)}
+                        className="hover:bg-white/[0.03] cursor-pointer transition-colors stagger-row"
+                        style={{ animationDelay: `${idx * 0.02}s` }}
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col gap-1">
+                            <span className="font-semibold text-gray-200 hover:text-indigo-400 transition-colors">
+                              {a.job_title || "Candidatura espontánea"}
+                            </span>
+                            {a.offer_source && (
+                              <span className={`text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded w-fit ${SOURCE_COLORS[a.offer_source] || SOURCE_COLORS.seed}`}>
+                                {a.offer_source}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-gray-400 font-medium">{a.company_name}</td>
+                        <td className="px-6 py-4 text-gray-400">{a.offer_location || "—"}</td>
                         <td className="px-6 py-4">
                           <span className={`px-2 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold ${STATUS_COLORS[a.status] || "bg-gray-500/10 text-gray-400 border border-gray-500/20"}`}>
                             {a.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-gray-400 capitalize">{a.method}</td>
-                        <td className="px-6 py-4 text-gray-500 font-mono text-xs">
-                          {a.sent_at ? new Date(a.sent_at).toLocaleDateString("es-ES") : "—"}
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex flex-col items-end gap-1">
+                            {a.relevance_score != null && (
+                              <span className={`px-2 py-0.5 rounded text-xs font-bold border ${a.relevance_score >= 0.8 ? "bg-green-500/10 text-green-400 border-green-500/20" : a.relevance_score >= 0.65 ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" : "bg-gray-500/10 text-gray-400 border-gray-500/20"}`}>
+                                {(a.relevance_score * 100).toFixed(0)}%
+                              </span>
+                            )}
+                            <span className="text-xs text-gray-500 font-mono">
+                              {a.sent_at ? new Date(a.sent_at).toLocaleDateString("es-ES") : "—"}
+                            </span>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -634,6 +776,177 @@ export default function Dashboard() {
                   Abrir Oferta Original <ChevronRight className="w-4 h-4" />
                 </a>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Company Detail Modal */}
+      {selectedCompany && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedCompany(null)} />
+          <div className="relative w-full max-w-md bg-[#16161f] border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden">
+            <div className="p-6 border-b border-white/5 bg-white/5 flex items-start justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-white mb-1">{selectedCompany.name}</h2>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">{selectedCompany.sector}</span>
+              </div>
+              <button onClick={() => setSelectedCompany(null)} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div className="p-6 grid grid-cols-2 gap-3 text-sm">
+              <div className="bg-white/5 rounded-lg p-3">
+                <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">País</div>
+                <div className="text-gray-300">{selectedCompany.country || "—"}</div>
+              </div>
+              <div className="bg-white/5 rounded-lg p-3">
+                <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Modalidad</div>
+                <div className="text-gray-300">{selectedCompany.remote_policy || "—"}</div>
+              </div>
+              <div className="bg-white/5 rounded-lg p-3">
+                <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Ofertas</div>
+                <div className="text-gray-300 font-mono font-bold">{selectedCompany.offer_count}</div>
+              </div>
+              <div className="bg-white/5 rounded-lg p-3">
+                <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Enviadas</div>
+                <div className={`font-mono font-bold ${selectedCompany.application_count > 0 ? "text-emerald-400" : "text-gray-500"}`}>{selectedCompany.application_count}</div>
+              </div>
+            </div>
+            <div className="px-6 pb-6 flex gap-2">
+              {selectedCompany.website && (
+                <a href={selectedCompany.website} target="_blank" rel="noopener noreferrer" className="flex-1 text-center px-4 py-2 text-sm font-medium text-gray-300 bg-white/5 hover:bg-white/10 rounded-xl transition-colors">Web</a>
+              )}
+              {selectedCompany.careers_url && (
+                <a href={selectedCompany.careers_url} target="_blank" rel="noopener noreferrer" className="flex-1 text-center px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-colors flex items-center justify-center gap-1">Empleos <ChevronRight className="w-4 h-4"/></a>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contact Detail Modal */}
+      {selectedContact && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedContact(null)} />
+          <div className="relative w-full max-w-lg bg-[#16161f] border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden">
+            <div className="p-6 border-b border-white/5 bg-white/5 flex items-start justify-between">
+              <div>
+                <div className="font-mono text-indigo-400 font-semibold mb-1">{selectedContact.value}</div>
+                <p className="text-sm text-gray-400">{selectedContact.company_name || "Empresa desconocida"}</p>
+              </div>
+              <button onClick={() => setSelectedContact(null)} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div className="p-6 flex flex-col gap-4">
+              <div className="flex gap-2">
+                <span className="bg-white/5 text-gray-400 border border-white/10 px-2 py-1 rounded text-[10px] uppercase font-bold tracking-wider">{selectedContact.type || "email"}</span>
+                {selectedContact.method && <span className="bg-white/5 text-gray-400 border border-white/10 px-2 py-1 rounded text-[10px] uppercase font-bold tracking-wider">{selectedContact.method}</span>}
+              </div>
+              {selectedContact.offers.length > 0 && (
+                <div>
+                  <div className="text-xs text-gray-500 uppercase tracking-wider mb-3">Ofertas asociadas</div>
+                  <div className="flex flex-col gap-2">
+                    {selectedContact.offers.map(o => (
+                      <div key={o.id} className="flex items-center justify-between gap-3 bg-white/5 rounded-lg px-3 py-2">
+                        {o.url ? (
+                          <a href={o.url} target="_blank" rel="noopener noreferrer" className="text-sm text-gray-300 hover:text-indigo-400 truncate font-medium flex-1">{o.title}</a>
+                        ) : (
+                          <span className="text-sm text-gray-300 truncate font-medium flex-1">{o.title}</span>
+                        )}
+                        <span className="text-xs text-gray-500 shrink-0">{o.location || "—"}</span>
+                        <span className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded shrink-0 border ${o.relevance_score >= 0.8 ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-gray-500/10 text-gray-400 border-gray-500/20"}`}>
+                          {(o.relevance_score * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            {selectedContact.company_website && (
+              <div className="px-6 pb-6">
+                <a href={selectedContact.company_website} target="_blank" rel="noopener noreferrer" className="w-full text-center block px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-colors">Ver empresa</a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Application Detail Modal */}
+      {selectedApplication && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-fade-in">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedApplication(null)} />
+          <div className="relative w-full max-w-lg bg-[#16161f] border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden">
+            <div className="p-6 border-b border-white/5 bg-white/5 flex items-start justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-white mb-1">{selectedApplication.job_title || "Candidatura espontánea"}</h2>
+                <p className="text-sm text-indigo-400 font-medium">{selectedApplication.company_name}</p>
+              </div>
+              <button onClick={() => setSelectedApplication(null)} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
+            </div>
+            <div className="p-6 flex flex-col gap-4">
+              <div className="flex flex-wrap gap-2">
+                <span className={`px-2 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold ${STATUS_COLORS[selectedApplication.status] || "bg-gray-500/10 text-gray-400 border border-gray-500/20"}`}>
+                  {selectedApplication.status}
+                </span>
+                {selectedApplication.offer_source && (
+                  <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded ${SOURCE_COLORS[selectedApplication.offer_source] || SOURCE_COLORS.seed}`}>
+                    {selectedApplication.offer_source}
+                  </span>
+                )}
+                {selectedApplication.relevance_score != null && (
+                  <span className={`px-2 py-1 rounded text-xs font-bold border ${selectedApplication.relevance_score >= 0.8 ? "bg-green-500/10 text-green-400 border-green-500/20" : selectedApplication.relevance_score >= 0.65 ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" : "bg-gray-500/10 text-gray-400 border-gray-500/20"}`}>
+                    {(selectedApplication.relevance_score * 100).toFixed(0)}%
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="bg-white/5 rounded-lg p-3">
+                  <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Ubicación</div>
+                  <div className="text-gray-300">{selectedApplication.offer_location || "—"}</div>
+                </div>
+                <div className="bg-white/5 rounded-lg p-3">
+                  <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Enviada</div>
+                  <div className="text-gray-300 font-mono">{selectedApplication.sent_at ? new Date(selectedApplication.sent_at).toLocaleDateString("es-ES") : "—"}</div>
+                </div>
+                <div className="bg-white/5 rounded-lg p-3">
+                  <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Método</div>
+                  <div className="text-gray-300 capitalize">{selectedApplication.method}</div>
+                </div>
+              </div>
+            </div>
+            <div className="p-5 border-t border-white/5 bg-black/20 flex justify-between gap-3">
+              {selectedApplication.job_offer_id && (
+                <button
+                  onClick={async () => {
+                    const offer = offers.find(o => o.id === selectedApplication.job_offer_id);
+                    if (offer) {
+                      await handleToggleSent(offer);
+                    } else {
+                      await unmarkOfferSent(selectedApplication.job_offer_id!);
+                      setApplications(prev => prev.filter(a => a.id !== selectedApplication.id));
+                    }
+                    setSelectedApplication(null);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl transition-colors"
+                >
+                  Desmarcar como enviada
+                </button>
+              )}
+              <div className="flex gap-2 ml-auto">
+                <button onClick={() => setSelectedApplication(null)} className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-colors">
+                  Cerrar
+                </button>
+                {selectedApplication.offer_url && (
+                  <a href={selectedApplication.offer_url} target="_blank" rel="noopener noreferrer" className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all flex items-center gap-2">
+                    Ver oferta <ChevronRight className="w-4 h-4" />
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         </div>

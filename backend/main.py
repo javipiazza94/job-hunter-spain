@@ -96,7 +96,13 @@ def get_offers(
     limit: int | None = None,
 ):
     conn = get_conn()
-    query = "SELECT jo.*, c.name as company_name FROM job_offers jo JOIN companies c ON jo.company_id = c.id"
+    query = (
+        "SELECT jo.*, c.name as company_name, "
+        "CASE WHEN a.job_offer_id IS NOT NULL THEN 1 ELSE 0 END as is_applied "
+        "FROM job_offers jo "
+        "JOIN companies c ON jo.company_id = c.id "
+        "LEFT JOIN (SELECT DISTINCT job_offer_id FROM applications) a ON a.job_offer_id = jo.id"
+    )
     conditions = []
     params: list = []
     if relevant_only:
@@ -166,10 +172,49 @@ def get_offers(
     return result
 
 
+@app.post("/api/offers/{offer_id}/mark-sent")
+def mark_offer_sent(offer_id: str):
+    import uuid as _uuid
+    conn = get_conn()
+    existing = conn.execute(
+        "SELECT id FROM applications WHERE job_offer_id = ?", (offer_id,)
+    ).fetchone()
+    if existing:
+        conn.close()
+        return {"id": existing["id"], "already_sent": True}
+    offer = conn.execute("SELECT * FROM job_offers WHERE id = ?", (offer_id,)).fetchone()
+    if not offer:
+        conn.close()
+        raise HTTPException(404, "Offer not found")
+    app_id = str(_uuid.uuid4())
+    conn.execute(
+        "INSERT INTO applications (id, company_id, job_offer_id, status, method, sent_at, cv_profile) "
+        "VALUES (?, ?, ?, 'sent', 'manual', datetime('now'), ?)",
+        (app_id, offer["company_id"], offer_id, offer["cv_profile"]),
+    )
+    conn.commit()
+    conn.close()
+    return {"id": app_id, "created": True}
+
+
+@app.delete("/api/offers/{offer_id}/mark-sent")
+def unmark_offer_sent(offer_id: str):
+    conn = get_conn()
+    conn.execute(
+        "DELETE FROM applications WHERE job_offer_id = ? AND method = 'manual'", (offer_id,)
+    )
+    conn.commit()
+    conn.close()
+    return {"removed": True}
+
+
 @app.get("/api/applications")
 def get_applications(status: str | None = None):
     conn = get_conn()
-    query = """SELECT a.*, c.name as company_name, jo.title as job_title
+    query = """SELECT a.*, c.name as company_name,
+                      jo.title as job_title, jo.url as offer_url,
+                      jo.source as offer_source, jo.location as offer_location,
+                      jo.relevance_score
                FROM applications a
                LEFT JOIN companies c ON a.company_id = c.id
                LEFT JOIN job_offers jo ON a.job_offer_id = jo.id"""
@@ -307,6 +352,25 @@ def _run_scraper(source: str):
             upsert_job_offer(conn, {**offer, "company_id": cid, "is_relevant": s >= 0.55, "relevance_score": s})
         conn.close()
 
+    if source == "infojobs":
+        from scraper.infojobs import run_infojobs
+        from database import upsert_company, upsert_job_offer
+        from automation.filter_engine import score_offer
+        from config import TECNOEMPLEO_SEARCH_KEYWORDS
+        offers = asyncio.run(run_infojobs(keywords=TECNOEMPLEO_SEARCH_KEYWORDS, max_pages=3))
+        conn = get_conn()
+        for offer in offers:
+            company_name = offer.get("company_name") or "Desconocida"
+            company_row = conn.execute(
+                "SELECT id FROM companies WHERE name = ?", (company_name,)
+            ).fetchone()
+            cid = company_row["id"] if company_row else upsert_company(conn, {
+                "name": company_name, "source": "infojobs"
+            })
+            s = score_offer(offer)
+            upsert_job_offer(conn, {**offer, "company_id": cid, "is_relevant": s >= 0.55, "relevance_score": s})
+        conn.close()
+
 
 def _run_applications():
     from automation.application_engine import create_drafts
@@ -327,6 +391,8 @@ def trigger_scraper(source: str = "seed", background_tasks: BackgroundTasks = No
         background_tasks.add_task(_run_scraper, "manfred")
     elif source == "linkedin":
         background_tasks.add_task(_run_scraper, "linkedin")
+    elif source == "infojobs":
+        background_tasks.add_task(_run_scraper, "infojobs")
     else:
         raise HTTPException(400, f"Unknown source: {source}")
     return {"status": "started", "source": source}

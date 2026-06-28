@@ -21,22 +21,26 @@ SALARY_PATTERN = re.compile(r"(\d[\d.,]+)\s*€")
 def _parse_card_html(html: str, base_url: str = INFOJOBS_BASE) -> dict | None:
     soup = BeautifulSoup(html, "html.parser")
 
-    title_el = soup.select_one("h2.title a, h3.title a, [class*='title'] a")
+    title_el = soup.select_one("h2.ij-OfferCardContent-description-title a")
     if not title_el:
         return None
     title = title_el.get_text(strip=True)
     href = title_el.get("href", "")
-    url = urljoin(base_url, href) if href else None
+    # InfoJobs uses protocol-relative URLs like //www.infojobs.net/...
+    if href.startswith("//"):
+        href = "https:" + href
+    url = href if href.startswith("http") else None
     if not url:
         return None
 
-    company_el = soup.select_one(".companyName, [class*='company']")
+    company_el = soup.select_one("h3.ij-OfferCardContent-description-subtitle a")
     company_name = company_el.get_text(strip=True) if company_el else None
 
-    location_el = soup.select_one(".location, [class*='location']")
-    location = location_el.get_text(strip=True) if location_el else None
+    # Location is the first <li> in the first description list
+    loc_el = soup.select_one("ul.ij-OfferCardContent-description-list li:first-child")
+    location = loc_el.get_text(strip=True) if loc_el else None
 
-    desc_el = soup.select_one(".description, p.description, [class*='description']")
+    desc_el = soup.select_one("p[class*='ij-OfferCardContent-description-description']")
     description = desc_el.get_text(strip=True) if desc_el else None
 
     salary_match = SALARY_PATTERN.search(soup.get_text())
@@ -72,6 +76,13 @@ class InfoJobsScraper(BaseScraper):
                 url = f"{INFOJOBS_BASE}/jobsearch/search-results/list.xhtml?{urlencode(params)}"
                 logger.info("InfoJobs page %d: %s", page_num, url)
                 if not await scraper.fetch_with_retry(page, url):
+                    break
+
+                # Wait for JS-rendered cards (InfoJobs is a SPA)
+                try:
+                    await page.wait_for_selector(".ij-OfferCardContent", timeout=15000)
+                except Exception:
+                    logger.info("InfoJobs: no cards on page %d (timeout waiting for selector)", page_num)
                     break
 
                 cards = await page.query_selector_all(
