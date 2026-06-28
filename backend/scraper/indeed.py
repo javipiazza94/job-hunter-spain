@@ -16,6 +16,7 @@ Primary card selectors (verified 2026-06):
 import re
 import logging
 from urllib.parse import urlencode
+# pyrefly: ignore [missing-import]
 from playwright.async_api import Page
 from scraper.base import BaseScraper
 
@@ -62,6 +63,12 @@ def _parse_salary_indeed(text: str) -> tuple[int | None, int | None]:
 class IndeedScraper(BaseScraper):
     def __init__(self):
         super().__init__(delay_min=5.0, delay_max=10.0)
+
+    async def new_page(self):
+        from playwright_stealth import Stealth
+        page = await self._context.new_page()
+        await Stealth().apply_stealth_async(page)
+        return page
 
     async def _parse_card(self, card) -> dict | None:
         try:
@@ -146,20 +153,28 @@ class IndeedScraper(BaseScraper):
                     logger.warning("Indeed: failed to fetch page %d", page_num + 1)
                     break
 
+                # Wait briefly for JS to render (Indeed often blocks headless browsers)
+                try:
+                    await page.wait_for_function(
+                        "() => document.querySelectorAll('div.job_seen_beacon, td.resultContent, div.cardOutline').length > 0",
+                        timeout=8000,
+                        polling=500,
+                    )
+                except Exception:
+                    pass
+
                 # Check for CAPTCHA / block page
                 content = await page.content()
                 if "captcha" in content.lower() or "unusual traffic" in content.lower():
-                    logger.warning("Indeed: CAPTCHA detected, stopping")
+                    logger.warning("Indeed: CAPTCHA/block detected, stopping")
                     break
 
                 # Parse job cards
                 cards = await page.query_selector_all(
-                    "div.job_seen_beacon, "
-                    "div.cardOutline, "
-                    "div[class*='jobsearch-ResultsList'] > div"
+                    "div.job_seen_beacon, div.cardOutline, td.resultContent"
                 )
                 if not cards:
-                    logger.info("Indeed: no cards on page %d", page_num + 1)
+                    logger.warning("Indeed: bot detection active — no cards rendered (headless browser blocked)")
                     break
 
                 page_offers = []

@@ -93,6 +93,7 @@ def get_offers(
     location: str | None = None,
     sort_by: str = "relevance_score",
     sort_dir: str = "desc",
+    limit: int | None = None,
 ):
     conn = get_conn()
     query = "SELECT jo.*, c.name as company_name FROM job_offers jo JOIN companies c ON jo.company_id = c.id"
@@ -122,7 +123,6 @@ def get_offers(
         conditions.append("jo.contract_type = ?")
         params.append(contract_type)
     if stack:
-        # Search across title, description, and tech_stack
         stack_terms = [s.strip() for s in stack.split(",") if s.strip()]
         for term in stack_terms:
             conditions.append("(LOWER(jo.title || ' ' || COALESCE(jo.description,'') || ' ' || COALESCE(jo.tech_stack,'')) LIKE ?)")
@@ -130,11 +130,13 @@ def get_offers(
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
 
-    # Sort
     valid_sorts = {"relevance_score", "salary_min", "salary_max", "scraped_at", "title"}
     sort_col = sort_by if sort_by in valid_sorts else "relevance_score"
     direction = "ASC" if sort_dir.lower() == "asc" else "DESC"
     query += f" ORDER BY jo.{sort_col} {direction}"
+
+    if limit is not None:
+        query += f" LIMIT {int(limit)}"
 
     rows = conn.execute(query, params).fetchall()
     conn.close()
@@ -255,6 +257,7 @@ def _run_scraper(source: str):
         return
     if source == "manfred":
         from scraper.manfred import run_manfred
+        from database import upsert_company, upsert_job_offer
         from automation.filter_engine import score_offer
         offers = run_manfred()
         conn = get_conn()
@@ -288,6 +291,7 @@ def _run_scraper(source: str):
         conn.close()
     if source == "linkedin":
         from scraper.linkedin_jobs import run_linkedin_jobs
+        from database import upsert_company, upsert_job_offer
         from automation.filter_engine import score_offer
         offers = asyncio.run(run_linkedin_jobs())
         conn = get_conn()

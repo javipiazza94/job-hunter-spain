@@ -26,6 +26,7 @@ export interface OfferFilters {
   location?: string;
   sort_by?: string;
   sort_dir?: string;
+  limit?: number;
 }
 
 export async function fetchOffers(filters: OfferFilters = {}) {

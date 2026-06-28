@@ -125,7 +125,7 @@ export default function Dashboard() {
     const [s, c, o, ct, a, p] = await Promise.all([
       fetchStats(),
       fetchCompanies(),
-      fetchOffers({ relevant_only: true }),
+      fetchOffers({ min_score: 0.2, limit: 500 }),
       fetchContacts(),
       fetchApplications(),
       fetchPendingApplications(),
