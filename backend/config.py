@@ -32,6 +32,8 @@ LINKEDIN_KEYWORDS = "developer OR data scientist OR devops OR SAP"
 LINKEDIN_LOCATIONS = ["Sevilla, España", "Andalucía, España", "España"]
 
 # ── Indeed ────────────────────────────────────────────────────────────────────
+SCRAPERAPI_KEY = os.getenv("SCRAPERAPI_KEY", "")
+
 INDEED_BASE = "https://es.indeed.com"
 INDEED_SEARCH_KEYWORDS = [
     "python developer", "fullstack", "data scientist",
