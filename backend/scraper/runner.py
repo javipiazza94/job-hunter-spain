@@ -76,12 +76,13 @@ async def run_indeed_source(dry_run: bool, max_pages: int):
     conn = get_conn()
     saved = 0
     for offer in offers:
+        company_name = offer.get("company_name") or "Desconocida"
         company_row = conn.execute(
-            "SELECT id FROM companies WHERE name = ?", (offer.get("company_name", ""),)
+            "SELECT id FROM companies WHERE name = ?", (company_name,)
         ).fetchone()
         if not company_row:
             cid = upsert_company(conn, {
-                "name": offer.get("company_name", "Desconocida"),
+                "name": company_name,
                 "source": "indeed",
             })
         else:
