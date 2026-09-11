@@ -20,6 +20,16 @@ def test_detect_ats_successfactors():
     assert detect_ats("https://stratesys.jobs.eu2.successfactors.eu/job/123") == "successfactors"
     assert detect_ats("https://jobs.sap.com/careers/job/123") == "successfactors"
 
+def test_detect_ats_successfactors_sapsf_domain():
+    # career55.sapsf.eu is the real hostname SAP uses for many SuccessFactors
+    # career portals (e.g. Indra's) — found via a live test link, was misrouted
+    # to "generic" before this pattern was added.
+    from automation.ats_handlers import detect_ats
+    assert detect_ats(
+        "https://career55.sapsf.eu/portalcareer?company=indrasiste&navBarLevel=MY_PROFILE"
+    ) == "successfactors"
+    assert detect_ats("https://career5.sapsf.com/careers?company=example") == "successfactors"
+
 def test_detect_ats_generic_fallback():
     from automation.ats_handlers import detect_ats
     assert detect_ats("https://www.seidor.com/trabaja/apply") == "generic"
