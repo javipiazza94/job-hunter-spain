@@ -20,6 +20,7 @@ from database import (
 from automation.cover_letter import generate as generate_letter
 from automation.email_sender import send_email
 from automation.filter_engine import classify_profile
+from automation.form_filler import fill_form
 
 logging.basicConfig(
     level=logging.INFO,
