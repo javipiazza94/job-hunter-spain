@@ -67,6 +67,12 @@ def _map_field(field_hint: str, profile: dict) -> str | None:
                 return personal.get("country", "")
             if canonical == "dni_nie":
                 return personal.get("dni_nie", "")
+            if canonical == "birth_date":
+                return personal.get("birth_date", "")
+            if canonical == "current_position":
+                return current_job.get("role", "")
+            if canonical == "current_company":
+                return current_job.get("company", "")
             if canonical == "availability":
                 return availability.get("start_date", "") if isinstance(availability, dict) else ""
             if canonical == "salary":
