@@ -2,7 +2,7 @@ _ATS_PATTERNS = {
     "workday":        ["myworkdayjobs.com", "workday.com/job"],
     "greenhouse":     ["greenhouse.io"],
     "lever":          ["jobs.lever.co"],
-    "successfactors": ["successfactors.eu", "successfactors.com", "jobs.sap.com"],
+    "successfactors": ["successfactors.eu", "successfactors.com", "jobs.sap.com", "sapsf.eu", "sapsf.com", "sapsf.cn"],
 }
 
 
