@@ -1,12 +1,18 @@
 """
 automation/ats_handlers/successfactors.py — SAP SuccessFactors ATS handler.
-May embed form in iframes; multi-step flow with Next/Submit buttons.
+May embed form in iframes; multi-step flow with Next/Submit buttons. Many
+SuccessFactors career portals gate the application form behind a candidate
+login/register screen first (e.g. career55.sapsf.eu).
 
 Safety: this handler NEVER clicks the final Submit/Enviar button. It fills every
 field it can find, advances intermediate wizard steps (Next/Siguiente/Continue),
-and stops on the last screen so a human reviews and submits manually.
+and stops on the last screen so a human reviews and submits manually. Logging in
+is not treated the same way — it's reversible and doesn't commit to anything —
+so if JOBPORTAL_EMAIL/JOBPORTAL_PASSWORD are set in the environment, it fills and
+submits the login form to reach the actual application.
 """
 import logging
+import os
 from pathlib import Path
 from playwright.async_api import Page
 from automation.ats_handlers.generic import _dismiss_cookies
@@ -17,6 +23,8 @@ logger = logging.getLogger(__name__)
 _SUBMIT_LABELS = ("Submit", "Enviar", "Enviar candidatura", "Finalizar", "Finish", "Apply")
 # Labels that mean "advance to the next step of the wizard" — safe to click.
 _NEXT_LABELS = ("Next", "Siguiente", "Continue", "Continuar")
+# Labels for the login button — safe to click, login is reversible.
+_LOGIN_LABELS = ("Entrar", "Iniciar sesión", "Log In", "Login", "Sign In", "Sign in")
 
 # input selector -> profile path (dot notation resolved against the loaded profile dict)
 _TEXT_FIELDS: tuple[tuple[str, tuple[str, ...]], ...] = (
