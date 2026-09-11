@@ -27,6 +27,10 @@ python -m automation.application_engine --dry-run
 
 # 5. Enviar candidaturas (20 max/día, delays automáticos)
 python -m automation.application_engine --limit 10
+
+# 6. Rellenar formularios de candidatura (SuccessFactors / genérico) — nunca envía
+python -m automation.application_engine fill-forms --dry-run
+python -m automation.application_engine fill-forms
 ```
 
 ## Antes de enviar emails
@@ -35,8 +39,8 @@ python -m automation.application_engine --limit 10
    - Ve a myaccount.google.com/apppasswords
    - Crea password para "Job Hunter Spain"
    - Pon el valor en `GMAIL_APP_PASSWORD`
-2. Copia tu CV a `backend/cv/cv_javi_piazza.pdf`
-3. Completa los campos vacíos en `backend/profile.json` (teléfono, dirección, LinkedIn)
+2. Copia tus CVs a `backend/cv/` (`cv_ia.pdf`, `cv_sap.pdf`, `cv_general.pdf`)
+3. `cp backend/profile.example.json backend/profile.json` y completa tus datos — `profile.json` está en `.gitignore` porque incluye DNI y fecha de nacimiento (los pide SuccessFactors)
 
 ## Arquitectura
 
