@@ -73,16 +73,18 @@ async def _expand_accordion_sections(page: Page) -> None:
     become visible/fillable. SuccessFactors marks these with the standard
     aria-expanded="false" attribute regardless of tenant, so this is generic.
     """
-    try:
-        buttons = await page.locator("button[aria-expanded='false']").all()
-        for btn in buttons[:20]:
-            try:
-                await btn.click(timeout=1000)
-                await page.wait_for_timeout(300)
-            except Exception:
-                continue
-    except Exception as e:
-        logger.debug("SuccessFactors accordion expand: %s", e)
+    # Re-query live on every iteration instead of snapshotting once: clicking a
+    # section can re-render the whole accordion and detach earlier handles.
+    for _ in range(20):
+        try:
+            btn = page.locator("button[aria-expanded='false']").first
+            if await btn.count() == 0:
+                break
+            await btn.click(timeout=1500)
+            await page.wait_for_timeout(400)
+        except Exception as e:
+            logger.debug("SuccessFactors accordion expand: %s", e)
+            break
 
 
 async def _maybe_login(page: Page) -> bool:
