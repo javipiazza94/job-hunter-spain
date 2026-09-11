@@ -62,7 +62,11 @@ GMAIL_USER=tu@gmail.com
 GMAIL_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx
 ```
 
-Edita `backend/profile.json` con tus datos (nombre, teléfono, LinkedIn, experiencia).
+`backend/profile.json` está en `.gitignore` (contiene datos personales como DNI y fecha de nacimiento). Cópialo desde la plantilla y edítalo con tus datos:
+```bash
+cp backend/profile.example.json backend/profile.json
+```
+Esquema completo: personal (incluye `dni_nie`, `birth_date` — usados por el handler de SuccessFactors), `availability`, `salary_expectation`, `summary`, `stack`, `languages`, `certifications`, `education`, `experience`.
 
 Copia tus CVs:
 ```
