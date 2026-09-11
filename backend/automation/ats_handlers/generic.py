@@ -38,8 +38,12 @@ def _map_field(field_hint: str, profile: dict) -> str | None:
     personal = profile.get("personal", {})
     availability = profile.get("availability", {})
     salary = profile.get("salary_expectation", {})
+    experience = profile.get("experience") or [{}]
+    current_job = experience[0] if isinstance(experience[0], dict) else {}
     name_parts = personal.get("name", "").split(" ", 1)
     for canonical, hints in _FIELD_HINTS.items():
+        if canonical == "availability" and any(m in hint for m in _END_DATE_MARKERS):
+            continue  # e.g. availability_end_date / "disponibilidad hasta" — never the start date
         if any(h in hint for h in hints):
             if canonical == "first_name":
                 return personal.get("first_name") or (name_parts[0] if name_parts else "")
