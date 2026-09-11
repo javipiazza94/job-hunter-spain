@@ -19,10 +19,18 @@ _FIELD_HINTS: dict[str, tuple[str, ...]] = {
     "postal_code":  ("postal_code", "postcode", "zip", "codigo_postal", "código postal", "cp"),
     "country":      ("country", "pais", "país"),
     "dni_nie":      ("dni", "nie", "nationalid", "national_id", "documentnumber", "documento"),
+    "birth_date":   ("birth_date", "birthdate", "fecha_nacimiento", "fecha de nacimiento", "fechanacimiento"),
     "availability": ("availab", "disponib", "startdate", "fecha_incorporacion", "fecha de incorporación"),
     "salary":       ("salary", "salario", "compensation", "pretension", "pretensión"),
+    "current_position": ("position", "puesto_actual", "puesto actual", "current_title", "currenttitle", "job_title"),
+    "current_company":  ("company_name", "currentcompany", "empresa_actual", "empresa actual"),
     "cover_letter": ("cover_letter", "carta", "motivac", "message", "mensaje", "presentation"),
 }
+
+# Hint substrings that mean "this is an END/until date", so it must never be
+# filled with the availability START date even though it also contains
+# "availab"/"disponib" (e.g. availability_end_date, "disponibilidad hasta").
+_END_DATE_MARKERS = ("end", "hasta", "_fin", " fin", "final")
 
 
 def _map_field(field_hint: str, profile: dict) -> str | None:
