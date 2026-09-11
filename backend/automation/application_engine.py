@@ -142,6 +142,86 @@ def create_drafts(limit: int | None = None) -> dict:
     return results
 
 
+def fill_forms(limit: int | None = None, dry_run: bool = False) -> dict:
+    """
+    Fill (never submit) application forms for pending offers whose best contact
+    is a detected form URL (not an email). Opens a real, visible browser window
+    per offer and pauses for manual review/submit before moving to the next one.
+    """
+    conn = get_conn()
+    pending = get_pending_offers(conn)
+    profile = _load_profile()
+    results = {
+        "forms_filled": 0,
+        "needs_manual_review": 0,
+        "skipped_manual_review": 0,
+        "skipped_no_form": 0,
+        "skipped_duplicate": 0,
+    }
+
+    for offer in pending:
+        if limit and results["forms_filled"] >= limit:
+            break
+
+        offer = dict(offer)
+        cv_profile, _confidence = classify_profile(offer)
+
+        if cv_profile == "manual_review":
+            results["skipped_manual_review"] += 1
+            logger.info("SKIP manual_review: %s", offer.get("title"))
+            continue
+
+        contact = _get_best_contact(conn, offer["company_id"])
+        if not contact or contact.get("type") != "form":
+            results["skipped_no_form"] += 1
+            continue
+
+        if _is_recently_contacted(conn, offer["company_id"], contact["value"]):
+            results["skipped_duplicate"] += 1
+            logger.info("SKIP duplicate: %s", offer.get("company_name"))
+            continue
+
+        template = "sap" if cv_profile == "sap" else "tech"
+        cover_letter = generate_letter(
+            company_name=offer["company_name"],
+            job_title=offer["title"],
+            tech_stack=offer.get("tech_stack"),
+            template=template,
+            variant_seed=offer["company_name"] + (offer.get("title") or ""),
+        )
+        cv = _cv_path_from_profile(cv_profile, profile)
+        form_url = contact["value"]
+
+        logger.info("Filling form: %s — %s (%s)", offer.get("company_name"), offer.get("title"), form_url)
+        ok = fill_form(
+            form_url, profile, cv, cover_letter,
+            dry_run=dry_run, headless=False, pause_for_review=not dry_run,
+        )
+
+        if not dry_run:
+            status = "form_filled_pending_review" if ok else "needs_manual_review"
+            record_application(conn, {
+                "company_id": offer["company_id"],
+                "job_offer_id": offer["id"],
+                "contact_id": contact["id"],
+                "method": "form",
+                "status": status,
+                "cover_letter_used": cover_letter,
+                "cv_profile": cv_profile,
+                "notes": form_url,
+            })
+
+        if ok:
+            results["forms_filled"] += 1
+        else:
+            results["needs_manual_review"] += 1
+            logger.warning("Form needs manual review: %s — %s", offer.get("company_name"), form_url)
+
+    conn.close()
+    logger.info("Fill-forms summary: %s", results)
+    return results
+
+
 def send_approved(application_id: str) -> bool:
     """
     Send a single pending_approval application.
