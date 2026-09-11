@@ -126,6 +126,7 @@ async def fill_successfactors(page: Page, profile: dict, cv_path: Path, cover_le
     await _dismiss_cookies(page)
     await _maybe_login(page)
     await _dismiss_cookies(page)  # post-login page may show its own cookie banner
+    await _expand_accordion_sections(page)
     filled = 0
 
     target = page
