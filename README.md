@@ -136,7 +136,9 @@ backend/
 │   └── runner.py                CLI
 └── automation/
     ├── filter_engine.py         Scoring relevancia + classify_profile()
-    ├── application_engine.py    create_drafts() + send_approved()
+    ├── application_engine.py    create_drafts() + fill_forms() + send_approved()
+    ├── form_filler.py           Orquesta Playwright: detecta ATS, nunca hace clic en Enviar/Submit
+    ├── ats_handlers/            workday · greenhouse · lever · successfactors · generic
     ├── cover_letter.py          Generación Jinja2 con variación
     └── email_sender.py          Gmail SMTP con rate limiting
 
