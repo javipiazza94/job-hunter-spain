@@ -7,6 +7,7 @@ __pycache__/
 node_modules/
 .next/
 backend/cv/
+backend/profile.json
 *.log
 .claude/settings.local.json
 backend/sessions/*
