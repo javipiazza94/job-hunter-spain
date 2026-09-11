@@ -54,13 +54,35 @@ _SELECT_FIELDS: tuple[tuple[str, tuple[str, ...]], ...] = (
 )
 
 
-def _resolve(profile: dict, path: tuple[str, ...]):
+def _resolve(profile: dict, path: tuple):
     node = profile
     for key in path:
-        if not isinstance(node, dict):
+        if isinstance(node, dict):
+            node = node.get(key)
+        elif isinstance(node, list) and isinstance(key, int):
+            node = node[key] if 0 <= key < len(node) else None
+        else:
             return None
-        node = node.get(key)
     return node
+
+
+async def _expand_accordion_sections(page: Page) -> None:
+    """
+    Candidate-profile fields (firstName, cellPhone, cust_national_id, ...) live
+    inside collapsed accordion sections that must be opened before their inputs
+    become visible/fillable. SuccessFactors marks these with the standard
+    aria-expanded="false" attribute regardless of tenant, so this is generic.
+    """
+    try:
+        buttons = await page.locator("button[aria-expanded='false']").all()
+        for btn in buttons[:20]:
+            try:
+                await btn.click(timeout=1000)
+                await page.wait_for_timeout(300)
+            except Exception:
+                continue
+    except Exception as e:
+        logger.debug("SuccessFactors accordion expand: %s", e)
 
 
 async def _maybe_login(page: Page) -> bool:
