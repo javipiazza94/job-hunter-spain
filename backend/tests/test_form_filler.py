@@ -55,3 +55,55 @@ def test_lever_handler_importable():
 def test_successfactors_handler_importable():
     from automation.ats_handlers.successfactors import fill_successfactors
     assert callable(fill_successfactors)
+
+def test_successfactors_never_declares_submit_labels_as_next():
+    from automation.ats_handlers.successfactors import _SUBMIT_LABELS, _NEXT_LABELS
+    assert not set(_SUBMIT_LABELS) & set(_NEXT_LABELS)
+    assert "Submit" in _SUBMIT_LABELS
+    assert "Enviar" in _SUBMIT_LABELS
+
+def test_successfactors_resolve_reads_nested_profile_paths():
+    from automation.ats_handlers.successfactors import _resolve
+    profile = {
+        "personal": {"first_name": "Javier", "dni_nie": "77864520K"},
+        "availability": {"start_date": "2026-09-22"},
+    }
+    assert _resolve(profile, ("personal", "first_name")) == "Javier"
+    assert _resolve(profile, ("personal", "dni_nie")) == "77864520K"
+    assert _resolve(profile, ("availability", "start_date")) == "2026-09-22"
+    assert _resolve(profile, ("salary_expectation", "amount")) is None
+
+def test_map_field_covers_new_successfactors_style_fields():
+    from automation.ats_handlers.generic import _map_field
+    profile = {
+        "personal": {
+            "name": "Javier Puente Piazza", "first_name": "Javier", "last_name": "Puente Piazza",
+            "email": "j@e.com", "phone": "", "linkedin": "", "dni_nie": "77864520K",
+            "address": "Felipe II 28", "city": "Sevilla", "postal_code": "41013", "country": "España",
+        },
+        "availability": {"start_date": "2026-09-22"},
+        "salary_expectation": {"amount": None},
+    }
+    assert _map_field("national_id_number", profile) == "77864520K"
+    assert _map_field("home address", profile) == "Felipe II 28"
+    assert _map_field("city", profile) == "Sevilla"
+    assert _map_field("postal_code", profile) == "41013"
+    assert _map_field("country", profile) == "España"
+    assert _map_field("earliest_available_start_date", profile) == "2026-09-22"
+    assert _map_field("salary_pretension", profile) == ""  # no amount set -> blank, never guessed
+
+def test_fill_form_accepts_headless_and_pause_for_review_kwargs():
+    from automation.form_filler import fill_form
+    import json
+    profile = json.loads(Path("profile.json").read_text())
+    # dry_run short-circuits before touching the browser, so this must not hang.
+    result = fill_form(
+        "https://boards.greenhouse.io/seidor/jobs/123",
+        profile, None, "Test cover letter",
+        dry_run=True, headless=False, pause_for_review=True,
+    )
+    assert result is True
+
+def test_fill_forms_importable():
+    from automation.application_engine import fill_forms
+    assert callable(fill_forms)
