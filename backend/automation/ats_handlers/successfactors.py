@@ -57,8 +57,47 @@ def _resolve(profile: dict, path: tuple[str, ...]):
     return node
 
 
+async def _maybe_login(page: Page) -> bool:
+    """
+    If this looks like a SuccessFactors candidate login screen and
+    JOBPORTAL_EMAIL/JOBPORTAL_PASSWORD are set, log in and return True.
+    Never invents credentials — silently does nothing if either is missing.
+    """
+    email = os.getenv("JOBPORTAL_EMAIL")
+    password = os.getenv("JOBPORTAL_PASSWORD")
+    if not email or not password:
+        return False
+
+    try:
+        user_field = page.locator(
+            "input[name='username' i], input[id='username' i], input[type='email']"
+        ).first
+        pass_field = page.locator("input[type='password']").first
+        if not (await user_field.is_visible(timeout=1500) and await pass_field.is_visible(timeout=1500)):
+            return False
+
+        await user_field.fill(email)
+        await pass_field.fill(password)
+
+        for label in _LOGIN_LABELS:
+            btn = page.locator(f"button:text('{label}'), input[value='{label}']").first
+            try:
+                if await btn.is_visible(timeout=1000):
+                    await btn.click()
+                    await page.wait_for_load_state("networkidle", timeout=15000)
+                    logger.info("SuccessFactors: login realizado con JOBPORTAL_EMAIL.")
+                    return True
+            except Exception:
+                continue
+    except Exception as e:
+        logger.debug("SuccessFactors login: %s", e)
+    return False
+
+
 async def fill_successfactors(page: Page, profile: dict, cv_path: Path, cover_letter: str) -> bool:
     await _dismiss_cookies(page)
+    await _maybe_login(page)
+    await _dismiss_cookies(page)  # post-login page may show its own cookie banner
     filled = 0
 
     target = page
