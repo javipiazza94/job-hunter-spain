@@ -1,57 +1,169 @@
 {
   "personal": {
-    "name": "Javier Piazza",
+    "name": "Javier Puente Piazza",
+    "short_name": "Javier Piazza",
+    "first_name": "Javier",
+    "last_name": "Puente Piazza",
     "email": "javipiazza94@gmail.com",
     "phone": "+34 618 809 725",
+    "phone_country_code": "+34",
     "address": "Felipe II 28",
     "city": "Sevilla",
+    "province": "Sevilla",
     "postal_code": "41013",
+    "country": "España",
+    "country_code": "ES",
+    "dni_nie": "77864520K",
+    "birth_date": "1994-08-25",
+    "nationality": null,
+    "driving_license": null,
     "linkedin": "https://www.linkedin.com/in/javier-puente-piazza-programador-data-scientist/",
+    "linkedin_alt": "https://linkedin.com/in/javier-puente-piazza-704405124",
     "github": "https://github.com/javipiazza94",
-    "portfolio": "https://javi-piazza-web.vercel.app/"
+    "portfolio": "https://javipiazza.com",
+    "portfolio_alt": "https://javi-piazza-web.vercel.app/",
+    "photo_path": "./cv/photo.png",
+    "_review_notes": [
+      "linkedin vs linkedin_alt: aparecen dos slugs distintos entre profile.json original y el pie de los CVs (SAP/IA). Confirmar cuál es la URL activa.",
+      "nationality y driving_license no aparecen en ningún documento fuente; rellenar si los necesitas para un formulario concreto."
+    ]
+  },
+  "availability": {
+    "start_date": "2026-09-22",
+    "notice_period": null,
+    "work_mode_preference": "remoto",
+    "relocation_notes": "Teletrabajo como preferencia principal; híbrido o presencial solo si el puesto está en Sevilla o área metropolitana.",
+    "willing_to_relocate": false
+  },
+  "salary_expectation": {
+    "amount": null,
+    "currency": "EUR",
+    "period": "annual_gross",
+    "_note": "No hay una cifra única confirmada — el Excel Plan_A_B_C_Empleo_Javi.xlsx es un plan estratégico a 3 años (escenarios A/B/C), no una expectativa fija. Rellenar amount si quieres que el autofiller lo use."
   },
   "cv_path": "./cv/cv_ia.pdf",
   "cv_sap_path": "./cv/cv_sap.pdf",
   "cv_ia_path": "./cv/cv_ia.pdf",
-  "stack": {
-    "primary": ["Python", "FastAPI", "Django", "React", "Next.js", "Data Science"],
-    "secondary": ["SAP Public Cloud", "SAP BTP", "DevOps", ".NET", "Docker", "SQL", "Playwright", "Machine Learning", "LLM"],
-    "tools": ["Git", "GitHub", "SQLite", "PostgreSQL", "Tailwind CSS", "TypeScript"],
-    "certifications": ["DAM — Desarrollo de Aplicaciones Multiplataforma", "SAP Public Cloud Practitioner"]
+  "cv_general_path": "./cv/cv_general.pdf",
+  "cover_letter_docx": {
+    "sap_es": "./cv/cover_letter_sap_es.docx",
+    "sap_en": "./cv/cover_letter_sap_en.docx",
+    "generica": "./cv/cover_letter_generica.docx",
+    "software_ia": "./cv/cover_letter_software_ia.docx"
   },
+  "summary": {
+    "sap": "Consultor SAP funcional con dominio E2E del flujo PS–SD–FI en S/4HANA Public Cloud. Doble certificación SAP Associate (FI + MM). Resolución de incidencias cross-module en múltiples sociedades internacionales (España, Portugal, Colombia, Perú). Background en Data Science e IA aplicada al ecosistema SAP, incluyendo un sistema RAG interno sobre documentación técnica.",
+    "ia": "Perfil orientado a Data Science e IA aplicada. Trabajo el ciclo completo del dato: extracción y scraping, limpieza y transformación con pandas, modelado y evaluación, y puesta en producción vía APIs. Experiencia real con LLMs y sistemas RAG (embeddings, pgvector, fine-tuning QLoRA), NLP sobre documentación no estructurada y pipelines automatizados en AWS.",
+    "general": "Perfil orientado a atención al cliente y trato con el público, con experiencia en resolución de incidencias y trabajo en equipo, combinado con formación técnica en programación y modelado de datos."
+  },
+  "stack": {
+    "sap_modules": ["PS - Project System", "SD - Sales & Distribution", "FI - Financial Accounting", "MM - Materials Management", "CO - Controlling"],
+    "sap_tools": ["SAP Fiori", "SAP BTP", "SAP Joule", "SAP Activate", "Clean Core", "Fit-to-Standard"],
+    "programming": ["Python", "SQL", "C#", "TypeScript", "Java"],
+    "frameworks": ["FastAPI", "Django", "React", "Next.js"],
+    "ai_ml": ["RAG", "LLMs", "Embeddings", "Fine-tuning", "QLoRA", "NLP", "NER", "Text-to-SQL", "scikit-learn", "pandas", "NumPy", "Ollama", "pgvector"],
+    "data": ["PostgreSQL", "SQLite", "Redis", "ETL", "Web scraping"],
+    "devops_cloud": ["AWS", "Docker", "Azure DevOps", "Git", "GitHub", "CI/CD", "Playwright"],
+    "other_tools": ["Ofimática", "Manejo de TPV", "Diseño web", "Uso de ERPs"]
+  },
+  "languages": [
+    {"language": "Español", "level": "Nativo"},
+    {"language": "Inglés", "level": "B2"},
+    {"language": "Italiano", "level": "A2 (Básico)"}
+  ],
+  "certifications": [
+    {"name": "SAP Certified Associate – SAP S/4HANA Cloud, Financial Accounting Consultant (FI)", "issuer": "Teknus / Inetum", "year": "2025"},
+    {"name": "SAP Certified Associate – SAP S/4HANA Cloud, Sourcing and Procurement / Materials Management (MM)", "issuer": "Teknus / Inetum", "year": "2025"},
+    {"name": "SAP Certified Associate – Public Cloud Implementation (SAP Activate)", "issuer": "Teknus / Inetum", "year": "2026"}
+  ],
+  "education": [
+    {"title": "Máster en SAP S/4HANA Public Cloud (FI y MM)", "institution": "Teknus / Inetum (en colaboración con EOI)", "start": "2025", "end": "2026"},
+    {"title": "Bootcamp de Data Science (Python, ML, NLP)", "institution": "The Bridge", "start": "2023", "end": "2024"},
+    {"title": "FP Desarrollo de Aplicaciones Multiplataforma (DAM)", "institution": "MEDAC", "start": "2021", "end": "2023"},
+    {"title": "Grado en Periodismo", "institution": "Universidad de Sevilla", "start": "2012", "end": "2017"}
+  ],
   "experience": [
     {
-      "company": "AQR Systems",
-      "role": "DevOps Engineer",
+      "company": "Inetum España",
+      "role": "Consultor SAP S/4HANA Public Cloud",
+      "start": "2025-10-06",
+      "end": null,
+      "duration_months": 11,
+      "description": "Implementación E2E PS–SD–FI en entornos greenfield Public Cloud para España, Portugal, Colombia y Perú. Diagnóstico y corrección de errores fiscales en facturación intercompany, gestión de Business Partners (extensión y borrado ILM), reclasificación contable de pagos a cuenta, facturación unificada CBD2 y resolución de incidencias de notas de crédito/débito. En paralelo, desarrollo de un motor interno de búsqueda semántica (RAG) sobre documentación técnica SAP con Python, LLMs y embeddings.",
+      "stack": ["SAP S/4HANA Public Cloud", "SAP PS", "SAP SD", "SAP FI", "SAP MM", "SAP CO", "RAG", "Python", "LLMs"]
+    },
+    {
+      "company": "AIDEA Legal",
+      "role": "Desarrollador Software / IA",
+      "start": "2024-04",
+      "end": "2025-09",
+      "duration_months": 17,
+      "description": "Desarrollo de aplicaciones de IA generativa para procesamiento de documentos legales, desplegadas en AWS (S3, Lambda, API Gateway). Limpieza y transformación masiva de datos documentales con pandas, clasificación documental y extracción de entidades (NER) sobre contratos y escrituras, extracción automática de KPIs y automatización de flujos documentales end-to-end.",
+      "stack": ["Python", "FastAPI", "LLM", "RAG", "AWS", "NER", "pandas", "Ollama", "Next.js", "React"]
+    },
+    {
+      "company": "AQR Systems / Consumer Intelligence",
+      "role": "Desarrollador Automatización & Datos (DevOps)",
       "start": "2023-06",
       "end": "2024-04",
       "duration_months": 10,
-      "description": "Automatización de procesos con .NET y scraping web. CI/CD, pipelines, despliegue en producción.",
-      "stack": [".NET", "C#", "Scraping", "DevOps", "Docker"]
+      "description": "Bots de automatización y web scraping de portales de aseguradoras inglesas con C# y Selenium WebDriver, optimización de selectores XPath y regex. Gestión y explotación de datos extraídos con SQL para el equipo de Consumer Intelligence (UK). Metodología DevOps con Azure DevOps (CI/CD, sprints).",
+      "stack": [".NET", "C#", "Selenium", "Web scraping", "SQL", "Azure DevOps", "Docker"]
     },
     {
-      "company": "Aidea Legal",
-      "role": "Python Developer / AI Engineer",
-      "start": "2024-05",
-      "end": "2025-09",
-      "duration_months": 17,
-      "description": "Desarrollo de aplicaciones de Inteligencia Artificial en Python. LLMs, RAG, agentes, APIs con FastAPI, integración con Ollama y modelos open-source.",
-      "stack": ["Python", "FastAPI", "LLM", "RAG", "Ollama", "Playwright", "SQLite", "Next.js", "React"]
-    }
-  ],
-  "education": [
-    {
-      "title": "DAM — Desarrollo de Aplicaciones Multiplataforma",
-      "institution": "",
-      "year": "2023"
+      "company": "SSP Spain",
+      "role": "Dependiente",
+      "start": "2022-06",
+      "end": "2022-09",
+      "duration_months": 3,
+      "description": "Atención al cliente en barra, preparación de cafés y venta de productos alimenticios en el aeropuerto de Sevilla.",
+      "stack": []
     },
     {
-      "title": "Data Science & Machine Learning",
-      "institution": "",
-      "year": "2024"
+      "company": "SSP Ireland",
+      "role": "Team member",
+      "start": "2019",
+      "end": "2021",
+      "duration_months": 24,
+      "description": "Elaboración de productos en cocina, atención al cliente en barra y reposición de productos.",
+      "stack": []
+    },
+    {
+      "company": "Sitel Ibérica",
+      "role": "Teleoperador",
+      "start": "2018-06",
+      "end": "2018-11",
+      "duration_months": 5,
+      "description": "Atención al cliente vía back office, resolución de incidencias de viajeros de Vueling, recogida de llamadas y venta de tickets.",
+      "stack": []
+    },
+    {
+      "company": "Sandetel",
+      "role": "Asistente en el gabinete de comunicación",
+      "start": "2016-12",
+      "end": "2017-05",
+      "duration_months": 5,
+      "description": "Redacción y difusión de contenidos de comunicación corporativa, apoyo en la gestión de notas de prensa y redes sociales.",
+      "stack": []
+    },
+    {
+      "company": "(cine, empresa no especificada en el CV)",
+      "role": "Portero de cine",
+      "start": "2016-09",
+      "end": "2016-12",
+      "duration_months": 3,
+      "description": "Control de accesos y atención al público en sala.",
+      "stack": []
     }
   ],
-  "cover_letter_intro": "Me dirijo a ustedes para expresar mi interés en unirme al equipo de {company_name}. Con formación en DAM y Data Science, y experiencia real en DevOps y automatización (AQR Systems, 10 meses) y desarrollo de aplicaciones IA en Python (Aidea Legal, 17 meses), busco un entorno donde seguir creciendo técnicamente.",
-  "cover_letter_stack": "Mi stack principal incluye Python (FastAPI, Django), React/Next.js, Data Science/ML, SAP Public Cloud y herramientas DevOps (Docker, CI/CD). En los últimos meses he trabajado con LLMs, RAG y agentes de IA en proyectos reales.",
-  "cover_letter_closing": "Quedo a su disposición para cualquier proceso de selección o entrevista. Adjunto mi CV para su revisión.\n\nAtentamente,\nJavier Piazza"
+  "_excluded_from_extraction": [
+    "PUENTE_PIAZZA_ROCIO___30241684L.p12 (certificado digital de terceros, no se ha abierto)",
+    "PUENTE_PIAZZA_JAVIER___77864520K.p12 (certificado digital con clave privada, no se ha abierto)"
+  ],
+  "_flagged_for_review": [
+    "El CV 'Currículum profesional y moderno para trabajo comun.pdf' incluye dos empleos fechados en 2026 (Ryanair/Azul Handling julio-agosto 2026 y Iberia/Foundever marzo-junio 2026) que solapan con el contrato confirmado en Inetum (activo desde oct-2025). No se han incluido en 'experience' por la incoherencia de fechas — revisa si esas fechas del CV son un error de plantilla (años sin actualizar) antes de usarlas en una candidatura real."
+  ],
+  "cover_letter_intro": "Me dirijo a ustedes para expresar mi interés en unirme al equipo de {company_name}. Con formación en DAM y Data Science, y experiencia real en consultoría SAP (Inetum, S/4HANA Public Cloud) y desarrollo de aplicaciones IA en Python (AIDEA Legal, 17 meses), busco un entorno donde seguir creciendo técnicamente.",
+  "cover_letter_stack": "Mi stack principal incluye Python (FastAPI, Django), React/Next.js, Data Science/ML, SAP S/4HANA Public Cloud (PS, SD, FI, MM) y herramientas DevOps (Docker, CI/CD). En los últimos meses he trabajado con LLMs, RAG y agentes de IA en proyectos reales.",
+  "cover_letter_closing": "Quedo a su disposición para cualquier proceso de selección o entrevista. Adjunto mi CV para su revisión.\n\nAtentamente,\nJavier Puente Piazza"
 }
