@@ -23,15 +23,22 @@ _HANDLER_MAP = {
 }
 
 
-async def _run_fill(form_url: str, profile: dict, cv_path: Path | None, cover_letter: str) -> bool:
+async def _run_fill(
+    form_url: str,
+    profile: dict,
+    cv_path: Path | None,
+    cover_letter: str,
+    headless: bool = True,
+    pause_for_review: bool = False,
+) -> bool:
     ats = detect_ats(form_url)
     module_name, func_name = _HANDLER_MAP[ats]
     handler = getattr(importlib.import_module(module_name), func_name)
-    logger.info("Form filler: ATS=%s URL=%s", ats, form_url)
+    logger.info("Form filler: ATS=%s URL=%s headless=%s", ats, form_url, headless)
 
     system_chromium = shutil.which("chromium") or shutil.which("chromium-browser")
     launch_kwargs: dict = {
-        "headless": True,
+        "headless": headless,
         "args": ["--no-sandbox", "--disable-blink-features=AutomationControlled", "--disable-dev-shm-usage"],
     }
     if system_chromium:
@@ -54,7 +61,16 @@ async def _run_fill(form_url: str, profile: dict, cv_path: Path | None, cover_le
         if not response or response.status >= 400:
             logger.warning("Form URL returned %s", response.status if response else "no response")
             return False
-        return await handler(page, profile, cv_path or Path("/nonexistent"), cover_letter)
+        result = await handler(page, profile, cv_path or Path("/nonexistent"), cover_letter)
+        if pause_for_review and result and not headless:
+            # Never auto-submits: the browser window stays open with the filled
+            # form until the human reviews it and confirms here in the terminal.
+            input(
+                "\n>>> Formulario rellenado. Revisa la ventana del navegador y, si todo "
+                "está bien, pulsa Enviar tú mismo/a.\n"
+                ">>> Pulsa Enter aquí cuando hayas terminado para cerrar el navegador... "
+            )
+        return result
     except Exception as e:
         logger.error("Form filler error (%s): %s", ats, e)
         return False
@@ -68,9 +84,11 @@ def fill_form(
     cv_path: Path | None,
     cover_letter: str,
     dry_run: bool = False,
+    headless: bool = True,
+    pause_for_review: bool = False,
 ) -> bool:
     if dry_run:
         ats = detect_ats(form_url)
         logger.info("[DRY-RUN] Would fill form: ATS=%s URL=%s", ats, form_url)
         return True
-    return asyncio.run(_run_fill(form_url, profile, cv_path, cover_letter))
+    return asyncio.run(_run_fill(form_url, profile, cv_path, cover_letter, headless, pause_for_review))
