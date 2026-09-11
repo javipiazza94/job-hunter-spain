@@ -177,7 +177,7 @@ SQLite en `backend/job_hunter.db` (gitignored).
 
 - [ ] Scraper InfoJobs
 - [ ] Scraper LinkedIn (public search)
-- [x] Form filler con Playwright — SuccessFactors + genérico (`fill-forms`, nunca auto-envía)
-- [ ] Form filler: cobertura Workday / Greenhouse / Lever (siguen siendo stubs)
+- [x] Form filler con Playwright — SuccessFactors + genérico, probados contra formularios reales (`fill-forms`, nunca auto-envía)
+- [x] Form filler: cobertura Workday / Greenhouse / Lever — mismo principio de no auto-enviar, pero sin probar aún contra un formulario real de cada uno (a diferencia de SuccessFactors/genérico). Si sale un falso negativo, hay que ajustar los selectores.
 - [ ] Hunter.io API para más emails
 - [ ] Notificaciones cuando responden (Gmail polling)

@@ -158,3 +158,49 @@ def test_fill_form_accepts_headless_and_pause_for_review_kwargs():
 def test_fill_forms_importable():
     from automation.application_engine import fill_forms
     assert callable(fill_forms)
+
+def test_workday_never_declares_submit_labels_as_next():
+    from automation.ats_handlers.workday import _SUBMIT_LABELS, _NEXT_LABELS
+    assert not set(_SUBMIT_LABELS) & set(_NEXT_LABELS)
+    assert "Submit" in _SUBMIT_LABELS
+    assert "Next" in _NEXT_LABELS
+
+def test_workday_fields_use_shared_map_field_hints():
+    # Every hint fed to _map_field must resolve to a real canonical field —
+    # if not, it's a typo that would silently fill nothing forever.
+    from automation.ats_handlers.workday import _FIELDS
+    from automation.ats_handlers.generic import _map_field
+    profile = {
+        "personal": {
+            "name": "Javier Puente Piazza", "first_name": "Javier", "last_name": "Puente Piazza",
+            "email": "j@e.com", "phone": "+34 600000000", "linkedin": "https://linkedin.com/in/j",
+            "address": "Calle Falsa 1", "city": "Sevilla", "postal_code": "41013", "country": "España",
+        },
+    }
+    for _automation_id, hint in _FIELDS:
+        assert _map_field(hint, profile), f"hint {hint!r} resolved to nothing"
+
+def test_greenhouse_never_auto_submits():
+    import inspect
+    from automation.ats_handlers import greenhouse
+    src = inspect.getsource(greenhouse.fill_greenhouse)
+    assert "submit.click()" not in src
+    assert "return True" not in src
+
+def test_lever_never_auto_submits():
+    import inspect
+    from automation.ats_handlers import lever
+    src = inspect.getsource(lever.fill_lever)
+    assert "submit.click()" not in src
+    assert "return True" not in src
+
+def test_workday_never_clicks_a_submit_label_button():
+    # The Next-loop legitimately clicks buttons to advance the wizard; only
+    # the tail segment (after entering the _SUBMIT_LABELS loop) must contain
+    # no click() call — just detection + logging.
+    import inspect
+    from automation.ats_handlers import workday
+    src = inspect.getsource(workday.fill_workday)
+    tail = src.split("for btn_text in _SUBMIT_LABELS:")[1]
+    assert "btn.click()" not in tail
+    assert "NO se pulsa" in tail

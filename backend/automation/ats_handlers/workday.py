@@ -1,6 +1,10 @@
 """
 automation/ats_handlers/workday.py — Workday ATS multi-step handler.
 Handles iframe-embedded forms and multi-step navigation.
+
+Safety: NEVER clicks the final Submit button. Advances intermediate wizard
+steps (the "Next" button, keyed off Workday's stable data-automation-id) and
+stops on the last screen for manual review — same rule as every other handler.
 """
 import logging
 from pathlib import Path
@@ -9,12 +13,25 @@ from automation.ats_handlers.generic import _dismiss_cookies, _map_field
 
 logger = logging.getLogger(__name__)
 
+# Labels that mean "final, irreversible action" — never clicked.
+_SUBMIT_LABELS = ("Submit", "Enviar", "Submit Application", "Review and Submit")
+# Labels that mean "advance the wizard" — safe to click.
+_NEXT_LABELS = ("Next", "Siguiente", "Continue", "Save and Continue")
+
+# Workday field automation-ids vary per tenant (it's a highly configurable
+# platform), so this list covers the common ones seen across public tenants.
+# Unvalidated against a live Workday form — improve against a real URL if one
+# turns up false negatives.
 _FIELDS = [
     ("firstName", "first_name"),
-    ("lastName",  "last_name"),
-    ("email",     "email"),
-    ("phone",     "phone"),
-    ("linkedIn",  "linkedin"),
+    ("lastName", "last_name"),
+    ("email", "email"),
+    ("phone", "phone"),
+    ("linkedIn", "linkedin"),
+    ("addressLine1", "address"),
+    ("city", "city"),
+    ("postalCode", "postal_code"),
+    ("countryRegion", "country"),
 ]
 
 
@@ -28,8 +45,8 @@ async def fill_workday(page: Page, profile: dict, cv_path: Path, cover_letter: s
             break
 
     filled = 0
-    for field_name, _ in _FIELDS:
-        value = _map_field(field_name, profile)
+    for field_name, hint in _FIELDS:
+        value = _map_field(hint, profile)
         if not value:
             continue
         for sel in [
@@ -40,7 +57,7 @@ async def fill_workday(page: Page, profile: dict, cv_path: Path, cover_letter: s
             try:
                 el = target.locator(sel).first
                 if await el.is_visible(timeout=1200):
-                    await el.fill(value)
+                    await el.fill(str(value))
                     filled += 1
                     break
             except Exception:
@@ -62,17 +79,34 @@ async def fill_workday(page: Page, profile: dict, cv_path: Path, cover_letter: s
     except Exception:
         pass
 
-    for btn_text in ["Next", "Siguiente", "Submit", "Enviar"]:
+    # Advance intermediate wizard steps, but never click the final submit action.
+    for _ in range(10):
+        advanced = False
+        for btn_text in _NEXT_LABELS:
+            try:
+                btn = target.locator(
+                    f"button[data-automation-id='bottom-navigation-next-btn'], button:text('{btn_text}')"
+                ).first
+                if await btn.is_visible(timeout=1200):
+                    await btn.click()
+                    await page.wait_for_timeout(1500)
+                    advanced = True
+                    break
+            except Exception:
+                continue
+        if not advanced:
+            break
+
+    for btn_text in _SUBMIT_LABELS:
         try:
-            btn = target.locator(
-                f"button[data-automation-id='bottom-navigation-next-btn'], button:text('{btn_text}')"
-            ).first
-            if await btn.is_visible(timeout=1500):
-                await btn.click()
-                await page.wait_for_timeout(1500)
-                if btn_text in ("Submit", "Enviar"):
-                    logger.info("Workday: submitted")
-                    return True
+            btn = target.locator(f"button:text('{btn_text}')").first
+            if await btn.is_visible(timeout=1200):
+                logger.info(
+                    "Workday: formulario listo (%d campos rellenados). "
+                    "Pantalla final detectada ('%s') — NO se pulsa, revisión manual requerida.",
+                    filled, btn_text,
+                )
+                break
         except Exception:
             continue
 

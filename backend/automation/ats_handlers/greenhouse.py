@@ -1,6 +1,12 @@
 """
 automation/ats_handlers/greenhouse.py — Greenhouse ATS handler.
-Greenhouse uses a simple single-page form at boards.greenhouse.io.
+Greenhouse uses a simple single-page form at boards.greenhouse.io, with
+inputs consistently named job_application[<field>] — one of the more
+standardized ATS conventions, so this coverage is fairly reliable even
+though it hasn't been tested against a live posting yet.
+
+Safety: NEVER clicks the final Submit button. Fills every field it can find
+and stops for manual review — same rule as every other handler.
 """
 import logging
 from pathlib import Path
@@ -15,9 +21,10 @@ async def fill_greenhouse(page: Page, profile: dict, cv_path: Path, cover_letter
     personal = profile.get("personal", {})
     filled = 0
 
-    for field_id, _ in [
-        ("first_name", "name"), ("last_name", "name"),
-        ("email", "email"), ("phone", "phone"),
+    for field_id in [
+        "first_name", "last_name", "email", "phone",
+        "address", "city", "postal_code", "country",
+        "dni_nie", "birth_date",
     ]:
         value = _map_field(field_id, profile)
         if not value:
@@ -30,7 +37,7 @@ async def fill_greenhouse(page: Page, profile: dict, cv_path: Path, cover_letter
             try:
                 el = page.locator(sel).first
                 if await el.is_visible(timeout=1200):
-                    await el.fill(value)
+                    await el.fill(str(value))
                     filled += 1
                     break
             except Exception:
@@ -70,10 +77,14 @@ async def fill_greenhouse(page: Page, profile: dict, cv_path: Path, cover_letter
             "input[type='submit'], button[type='submit'], button:text('Submit Application')"
         ).first
         if await submit.is_visible(timeout=3000):
-            await submit.click()
-            logger.info("Greenhouse: submitted")
-            return True
-    except Exception as e:
-        logger.warning("Greenhouse submit: %s", e)
+            logger.info(
+                "Greenhouse: formulario listo (%d campos rellenados). "
+                "Botón de envío detectado — NO se pulsa, revisión manual requerida.",
+                filled,
+            )
+    except Exception:
+        pass
 
+    if filled == 0:
+        logger.warning("Greenhouse: no se rellenó ningún campo — needs_manual_review")
     return filled > 0
