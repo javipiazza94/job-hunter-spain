@@ -44,6 +44,8 @@ _TEXT_FIELDS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("input[name*='website' i], input[name*='portfolio' i]", ("personal", "portfolio")),
     ("input[name*='availab' i], input[name*='startDate' i], input[name*='earliestStart' i]", ("availability", "start_date")),
     ("input[name*='salary' i], input[name*='compensation' i]", ("salary_expectation", "amount")),
+    ("input[name*='currentTitle' i]", ("experience", 0, "role")),
+    ("input[name*='currentCompany' i]", ("experience", 0, "company")),
 )
 
 _SELECT_FIELDS: tuple[tuple[str, tuple[str, ...]], ...] = (
