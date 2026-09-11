@@ -49,7 +49,8 @@ backend/
 ├── main.py              # FastAPI API REST
 ├── config.py            # Settings y filtros (EDITAR para tuning)
 ├── database.py          # SQLite schema + helpers
-├── profile.json         # Tu perfil (nombre, email, CV, experiencia)
+├── profile.json         # Tu perfil (gitignored — PII: DNI, fecha nacimiento)
+├── profile.example.json # Plantilla trackeada, sin datos reales
 ├── scraper/
 │   ├── base.py          # Playwright con stealth + rate limiting
 │   ├── seed_loader.py   # Carga companies-with-public-salary
@@ -60,7 +61,9 @@ backend/
     ├── filter_engine.py # Scoring por stack/ubicación (umbral: 0.55)
     ├── cover_letter.py  # Genera carta con Jinja2
     ├── email_sender.py  # Gmail SMTP con rate limiting
-    └── application_engine.py  # Orquestador: itera y aplica
+    ├── form_filler.py   # Playwright form filler — nunca hace clic en Enviar/Submit
+    ├── ats_handlers/     # workday · greenhouse · lever · successfactors · generic
+    └── application_engine.py  # Orquestador: create_drafts() + fill_forms() + send_approved()
 
 frontend/
 └── app/page.tsx         # Dashboard con tabla de empresas y candidaturas
