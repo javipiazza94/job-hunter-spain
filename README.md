@@ -101,11 +101,23 @@ python -m scraper.runner --source tecnoempleo --max-pages 3
 # 3. Extraer emails y formularios
 python -m scraper.runner --source contacts
 
-# 4. Generar borradores (sin enviar nada todavía)
+# 4. Generar borradores de email (sin enviar nada todavía)
 python -m automation.application_engine create-drafts
+
+# 4b. Rellenar formularios de candidatura (SuccessFactors / genérico) — abre un
+#     navegador visible, rellena todo y se detiene ANTES de pulsar Enviar/Submit
+python -m automation.application_engine fill-forms --dry-run   # vista previa
+python -m automation.application_engine fill-forms
 
 # 5. Revisar y aprobar desde el dashboard → tab "Pendientes"
 ```
+
+El comando `fill-forms` nunca envía la candidatura por ti: detecta el ATS por la URL
+(`workday` | `greenhouse` | `lever` | `successfactors` | `generic`), rellena los campos
+que reconoce a partir de `profile.json`, sube el CV correspondiente y avanza los pasos
+intermedios del asistente — pero se para en la pantalla final para que la revises y la
+envíes tú mismo/a. Cada formulario rellenado queda registrado en `applications` con
+`method='form'` y `status='form_filled_pending_review'`.
 
 El botón **"Generar borradores"** del dashboard también lanza el paso 4 y navega directo al tab Pendientes.
 
