@@ -119,6 +119,30 @@ def test_map_field_covers_new_successfactors_style_fields():
     assert _map_field("earliest_available_start_date", profile) == "2026-09-22"
     assert _map_field("salary_pretension", profile) == ""  # no amount set -> blank, never guessed
 
+def test_map_field_current_position_and_company_from_first_experience():
+    from automation.ats_handlers.generic import _map_field
+    profile = {
+        "personal": {"name": "Javier Puente Piazza"},
+        "experience": [{"role": "Consultor SAP", "company": "Inetum España"}],
+    }
+    assert _map_field("professional_experiences[0][position]", profile) == "Consultor SAP"
+    assert _map_field("professional_experiences[0][company_name]", profile) == "Inetum España"
+
+def test_map_field_birth_date():
+    from automation.ats_handlers.generic import _map_field
+    profile = {"personal": {"name": "Javier", "birth_date": "1994-08-25"}}
+    assert _map_field("fecha_nacimiento", profile) == "1994-08-25"
+
+def test_map_field_availability_end_date_never_gets_start_date_value():
+    from automation.ats_handlers.generic import _map_field
+    profile = {
+        "personal": {"name": "Javier"},
+        "availability": {"start_date": "2026-09-22"},
+    }
+    assert _map_field("availability_init_date", profile) == "2026-09-22"
+    assert _map_field("availability_end_date", profile) is None
+    assert _map_field("disponibilidad_hasta", profile) is None
+
 def test_fill_form_accepts_headless_and_pause_for_review_kwargs():
     from automation.form_filler import fill_form
     import json
