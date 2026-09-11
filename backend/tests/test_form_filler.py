@@ -93,6 +93,13 @@ def test_successfactors_resolve_reads_nested_profile_paths():
     assert _resolve(profile, ("availability", "start_date")) == "2026-09-22"
     assert _resolve(profile, ("salary_expectation", "amount")) is None
 
+def test_successfactors_resolve_supports_list_index_paths():
+    from automation.ats_handlers.successfactors import _resolve
+    profile = {"experience": [{"role": "Consultor SAP", "company": "Inetum"}]}
+    assert _resolve(profile, ("experience", 0, "role")) == "Consultor SAP"
+    assert _resolve(profile, ("experience", 0, "company")) == "Inetum"
+    assert _resolve(profile, ("experience", 5, "role")) is None  # out of range -> None, no crash
+
 def test_map_field_covers_new_successfactors_style_fields():
     from automation.ats_handlers.generic import _map_field
     profile = {
