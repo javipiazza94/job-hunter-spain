@@ -67,10 +67,20 @@ def test_successfactors_handler_importable():
     assert callable(fill_successfactors)
 
 def test_successfactors_never_declares_submit_labels_as_next():
-    from automation.ats_handlers.successfactors import _SUBMIT_LABELS, _NEXT_LABELS
+    from automation.ats_handlers.successfactors import _SUBMIT_LABELS, _NEXT_LABELS, _LOGIN_LABELS
     assert not set(_SUBMIT_LABELS) & set(_NEXT_LABELS)
+    assert not set(_SUBMIT_LABELS) & set(_LOGIN_LABELS)
     assert "Submit" in _SUBMIT_LABELS
     assert "Enviar" in _SUBMIT_LABELS
+    assert "Entrar" in _LOGIN_LABELS
+
+def test_maybe_login_does_nothing_without_env_credentials(monkeypatch):
+    import asyncio
+    from automation.ats_handlers.successfactors import _maybe_login
+    monkeypatch.delenv("JOBPORTAL_EMAIL", raising=False)
+    monkeypatch.delenv("JOBPORTAL_PASSWORD", raising=False)
+    # page is never touched when credentials are absent — None is safe here.
+    assert asyncio.run(_maybe_login(None)) is False
 
 def test_successfactors_resolve_reads_nested_profile_paths():
     from automation.ats_handlers.successfactors import _resolve
