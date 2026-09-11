@@ -298,10 +298,18 @@ def send_approved(application_id: str) -> bool:
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="Job Hunter Spain — Application Engine")
-    parser.add_argument("--dry-run", action="store_true", help="Generate drafts only (no email)")
-    parser.add_argument("--limit", type=int, default=None, help="Max drafts this run")
+    parser.add_argument(
+        "command", nargs="?", default="create-drafts",
+        choices=["create-drafts", "fill-forms"],
+        help="create-drafts: email drafts (default). fill-forms: fill (never submit) SuccessFactors/generic application forms.",
+    )
+    parser.add_argument("--dry-run", action="store_true", help="Preview only, no writes / no browser action")
+    parser.add_argument("--limit", type=int, default=None, help="Max items this run")
     args = parser.parse_args()
-    result = create_drafts(limit=args.limit)
+    if args.command == "fill-forms":
+        result = fill_forms(limit=args.limit, dry_run=args.dry_run)
+    else:
+        result = create_drafts(limit=args.limit)
     print(result)
 
 
