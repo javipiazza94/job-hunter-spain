@@ -177,6 +177,7 @@ SQLite en `backend/job_hunter.db` (gitignored).
 
 - [ ] Scraper InfoJobs
 - [ ] Scraper LinkedIn (public search)
-- [ ] Form filler con Playwright (`automation/form_filler.py` — stub existe)
+- [x] Form filler con Playwright — SuccessFactors + genérico (`fill-forms`, nunca auto-envía)
+- [ ] Form filler: cobertura Workday / Greenhouse / Lever (siguen siendo stubs)
 - [ ] Hunter.io API para más emails
 - [ ] Notificaciones cuando responden (Gmail polling)
