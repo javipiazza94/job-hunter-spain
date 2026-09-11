@@ -132,7 +132,10 @@ LINKEDIN_SAP_SEARCHES = [
     {"keywords": "SAP Public Cloud", "location": "España"},
     {"keywords": "consultor SAP BTP", "location": "España"},
     {"keywords": "SAP S/4HANA",       "location": "Sevilla"},
-    {"keywords": "ABAP developer",    "location": "España"},
+    {"keywords": "SAP Public Cloud SD", "location": "España"},
+    {"keywords": "SAP Public Cloud MM", "location": "España"},
+    {"keywords": "SAP Public Cloud PS", "location": "España"},
+    {"keywords": "SAP Public Cloud FI", "location": "España"},
 ]
 
 LINKEDIN_IADEV_SEARCHES = [
