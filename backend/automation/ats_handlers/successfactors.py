@@ -35,7 +35,11 @@ _TEXT_FIELDS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("input[name*='address' i], input[name*='street' i]", ("personal", "address")),
     ("input[name*='city' i]", ("personal", "city")),
     ("input[name*='postalCode' i], input[name*='zip' i], input[name*='postcode' i]", ("personal", "postal_code")),
-    ("input[name*='nationalId' i], input[name*='dni' i], input[name*='documentNumber' i], input[name*='passportNumber' i]", ("personal", "dni_nie")),
+    (
+        "input[name*='nationalId' i], input[name*='national_id' i], input[name*='dni' i], "
+        "input[name*='documentNumber' i], input[name*='passportNumber' i]",
+        ("personal", "dni_nie"),
+    ),
     ("input[name*='linkedin' i]", ("personal", "linkedin")),
     ("input[name*='website' i], input[name*='portfolio' i]", ("personal", "portfolio")),
     ("input[name*='availab' i], input[name*='startDate' i], input[name*='earliestStart' i]", ("availability", "start_date")),
