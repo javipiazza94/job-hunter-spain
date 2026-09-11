@@ -190,8 +190,14 @@ async def run_linkedin_jobs(max_per_search: int = 25) -> list[dict]:
 
                 html = await page.content()
                 if _is_checkpoint(page.url, html):
-                    logger.warning("LinkedIn checkpoint during search — stopping")
-                    break
+                    # LinkedIn's SPA can briefly sit in a transitional/auth-check
+                    # state right after navigation — give it one more chance
+                    # before treating it as a real checkpoint.
+                    await asyncio.sleep(8)
+                    html = await page.content()
+                    if _is_checkpoint(page.url, html):
+                        logger.warning("LinkedIn checkpoint during search — stopping")
+                        break
 
                 for offer in await _parse_cards(page, search["keywords"], max_per_search):
                     if offer.get("url") and offer["url"] not in seen:
