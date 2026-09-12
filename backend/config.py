@@ -88,6 +88,10 @@ EXPERIENCE_PRIORITY_MAX_YEARS = 2
 # Salario base mínimo deseado
 SALARY_MIN_BASE = 22000
 
+# Umbral de score (calculado con los datos del listado) a partir del cual se
+# pide la ficha completa de la oferta (descripción, tech stack, experiencia, etc.)
+DETAIL_FETCH_MIN_SCORE = 0.30
+
 NEGATIVE_KEYWORDS = [
     "+10 años", "10 years", "c++ senior", "java ee", "cobol",
     "mainframe", "pl/sql dba", "director", "cto", "ceo",
