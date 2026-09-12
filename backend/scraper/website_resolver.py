@@ -117,7 +117,7 @@ def resolve_missing_websites(limit: int | None = None, dry_run: bool = False) ->
         else:
             logger.info("NOT FOUND: %s", name)
             results["not_found"] += 1
-        time.sleep(random.uniform(2.0, 5.0))
+        time.sleep(random.uniform(6.0, 12.0))
     conn.close()
 
     logger.info("Website resolver summary: %s", results)
