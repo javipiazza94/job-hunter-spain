@@ -83,6 +83,17 @@ El scoring (`automation/filter_engine.py::score_offer`) pondera 5 categorías de
 
 El tamaño de empresa no se puntúa (indiferente).
 
+### Ficha completa (Tecnoempleo)
+
+`scraper/tecnoempleo.py` primero scrapea los listados (título/ubicación/salario/descripción corta) y calcula un score preliminar. Para las ofertas que superen `DETAIL_FETCH_MIN_SCORE` (0.30 por defecto), pide además la ficha completa de la oferta (`TecnoempleoScraper.fetch_offer_detail`), que aporta:
+- Descripción completa (vía JSON-LD `JobPosting`, con fallback a `div[itemprop="description"]`)
+- `tech_stack` real (tags de la ficha, no solo texto libre)
+- `experience_level` y `contract_type` normalizados desde el sidebar "Experiencia"/"Tipo contrato" (reutiliza `automation.experience_classifier`)
+- `posted_date` (JSON-LD `datePosted`)
+- Salario si el JSON-LD trae `baseSalary` (raro en Tecnoempleo)
+
+Solo se pide ficha completa a las candidatas (no a todas) para no machacar el sitio con una petición extra por oferta. Subir `DETAIL_FETCH_MIN_SCORE` en `config.py` para ser más selectivo (menos peticiones, más rápido); bajarlo para enriquecer más ofertas a costa de más tiempo/peticiones.
+
 Editar `backend/config.py`:
 - `SAP_MASTER_KEYWORDS_BOOST` / `PREVIOUS_STACK_KEYWORDS_BOOST`: añadir/quitar keywords de stack
 - `SCORE_WEIGHTS`: reponderar categorías (deben sumar 1.0)
