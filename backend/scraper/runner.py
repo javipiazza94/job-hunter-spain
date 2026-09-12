@@ -136,6 +136,12 @@ def run_manfred_source(dry_run: bool):
     logger.info("Manfred: %d offers saved to DB", saved)
 
 
+def run_resolve_websites_source(dry_run: bool, limit: int | None):
+    from scraper.website_resolver import resolve_missing_websites
+    result = resolve_missing_websites(limit=limit, dry_run=dry_run)
+    logger.info("Website resolver: %s", result)
+
+
 async def run_contacts_source(dry_run: bool):
     from scraper.contact_extractor import run_contact_extraction
     conn = get_conn()
