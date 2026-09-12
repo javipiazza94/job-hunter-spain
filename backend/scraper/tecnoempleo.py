@@ -121,6 +121,72 @@ class TecnoempleoScraper(BaseScraper):
             logger.debug("Card parse error: %s", e)
             return None
 
+    async def fetch_offer_detail(self, page: Page, url: str) -> dict | None:
+        """
+        Fetch the full offer page (ficha completa): clean description, tech stack,
+        experience level, contract type, posted date and (rarely disclosed) salary.
+        Uses the page's JobPosting JSON-LD when present, falling back to the
+        visible sidebar summary (Ubicación/Funciones/Jornada/Experiencia/Tipo contrato).
+        """
+        if not await self.fetch_with_retry(page, url):
+            return None
+
+        result: dict = {}
+
+        ld_data: dict = {}
+        ld_el = await page.query_selector('script[type="application/ld+json"]')
+        if ld_el:
+            try:
+                ld_data = json.loads((await ld_el.text_content()) or "{}")
+            except json.JSONDecodeError:
+                ld_data = {}
+
+        description = ld_data.get("description")
+        if not description:
+            desc_el = await page.query_selector('div[itemprop="description"]')
+            description = (await desc_el.inner_text()).strip() if desc_el else None
+        if description:
+            result["description"] = description.strip()
+
+        if ld_data.get("datePosted"):
+            result["posted_date"] = ld_data["datePosted"]
+
+        base_salary = ld_data.get("baseSalary")
+        salary_value = base_salary.get("value") if isinstance(base_salary, dict) else None
+        if isinstance(salary_value, dict):
+            if salary_value.get("minValue"):
+                result["salary_min"] = int(salary_value["minValue"])
+            if salary_value.get("maxValue"):
+                result["salary_max"] = int(salary_value["maxValue"])
+
+        # Sidebar summary: each li has a label (Ubicación/Funciones/Jornada/Experiencia/
+        # Tipo contrato) and a value; the last li holds the tech-stack tag buttons.
+        items = await page.query_selector_all("ul.list-unstyled li.list-item")
+        tech_tags: list[str] = []
+        for li in items:
+            label_el = await li.query_selector("span.d-inline-block")
+            value_el = await li.query_selector("span.float-end")
+            if label_el and value_el:
+                label = (await label_el.inner_text()).strip()
+                value = (await value_el.inner_text()).strip()
+                if label == "Experiencia":
+                    level = classify_experience("", value)
+                    if level:
+                        result["experience_level"] = level
+                elif label == "Tipo contrato":
+                    contract = classify_contract("", value)
+                    if contract:
+                        result["contract_type"] = contract
+            for btn in await li.query_selector_all("a button"):
+                t = (await btn.inner_text()).strip()
+                if t:
+                    tech_tags.append(t)
+
+        if tech_tags:
+            result["tech_stack"] = ", ".join(dict.fromkeys(tech_tags))
+
+        return result
+
     async def scrape_keyword(self, keyword: str, location: str, max_pages: int = 5) -> list[dict]:
         offers = []
         pr_id = PROVINCE_IDS.get(location.lower())
