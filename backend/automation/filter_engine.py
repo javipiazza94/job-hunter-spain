@@ -8,6 +8,8 @@ Scoring por categorías (pesos en config.SCORE_WEIGHTS), de mayor a menor priori
 4. experience     — prioridad a ofertas de menos de EXPERIENCE_PRIORITY_MAX_YEARS años
 5. salary         — salario base >= SALARY_MIN_BASE
 """
+import re
+
 from automation.experience_classifier import classify_experience
 from config import (
     SAP_MASTER_KEYWORDS_BOOST,
