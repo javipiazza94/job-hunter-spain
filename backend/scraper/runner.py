@@ -290,6 +290,10 @@ def main():
         logger.info("── SAP multi-portal scraper ────────")
         asyncio.run(run_sap_source(args.dry_run, args.max_pages))
 
+    if args.source == "resolve-websites":
+        logger.info("── Website resolver (DDG search) ───")
+        run_resolve_websites_source(args.dry_run, args.limit)
+
     if args.source == "linkedin-login":
         logger.info("── LinkedIn login (headful) ─────────")
         from scraper.linkedin_jobs import run_linkedin_login
