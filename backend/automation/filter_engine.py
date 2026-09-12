@@ -1,17 +1,64 @@
 """
 automation/filter_engine.py — Scores job offers and classifies profile (sap/ia_dev/manual_review).
+
+Scoring por categorías (pesos en config.SCORE_WEIGHTS), de mayor a menor prioridad:
+1. sap_master     — SAP S/4HANA Public Cloud + módulos PS/MM/SD/FI del máster
+2. previous_stack — Python, C#, SQL, Git, metodología DevOps (experiencia previa)
+3. location       — Sevilla si es presencial, remoto si es fuera de Sevilla
+4. experience     — prioridad a ofertas de menos de EXPERIENCE_PRIORITY_MAX_YEARS años
+5. salary         — salario base >= SALARY_MIN_BASE
 """
-import json
+from automation.experience_classifier import classify_experience
 from config import (
-    STACK_KEYWORDS_BOOST,
-    TITLE_KEYWORDS_BOOST,
-    LOCATION_BOOST,
+    SAP_MASTER_KEYWORDS_BOOST,
+    PREVIOUS_STACK_KEYWORDS_BOOST,
     NEGATIVE_KEYWORDS,
     MIN_RELEVANCE_SCORE,
+    SCORE_WEIGHTS,
+    TARGET_CITY,
+    EXPERIENCE_PRIORITY_MAX_YEARS,
+    SALARY_MIN_BASE,
     SAP_PROFILE_KEYWORDS,
     IADEV_PROFILE_KEYWORDS,
     PROFILE_CONFIDENCE_THRESHOLD,
 )
+
+
+def _location_score(location: str) -> float:
+    """Sevilla presencial vale igual que remoto; presencial fuera de Sevilla no vale."""
+    if not location:
+        return 0.5  # ubicación desconocida — no penalizar del todo
+    loc = location.lower()
+    if "remoto" in loc or "remote" in loc:
+        return 1.0
+    if TARGET_CITY in loc:
+        return 1.0
+    if "híbrido" in loc or "hibrido" in loc or "hybrid" in loc:
+        return 0.5  # híbrido sin confirmar que sea en Sevilla
+    return 0.0  # presencial fuera de Sevilla
+
+
+def _experience_score(title: str, description: str) -> float:
+    """Prioriza ofertas junior (< EXPERIENCE_PRIORITY_MAX_YEARS años)."""
+    level = classify_experience(title, description)
+    if level == "junior":
+        return 1.0
+    if level == "mid":
+        return 0.5
+    if level in ("senior", "lead"):
+        return 0.0
+    return 0.5  # nivel no especificado — no penalizar del todo
+
+
+def _salary_score(offer: dict) -> float:
+    """Salario base >= SALARY_MIN_BASE."""
+    salary_min = offer.get("salary_min")
+    salary_max = offer.get("salary_max")
+    if salary_min:
+        return 1.0 if salary_min >= SALARY_MIN_BASE else 0.0
+    if salary_max:
+        return 0.5 if salary_max >= SALARY_MIN_BASE else 0.0
+    return 0.5  # salario no publicado — no penalizar del todo
 
 
 def score_offer(offer: dict) -> float:
@@ -31,23 +78,25 @@ def score_offer(offer: dict) -> float:
         if neg.lower() in full_text:
             return 0.0
 
-    score = 0.0
-    max_score = 0.0
+    sap_hits = sum(1 for kw in SAP_MASTER_KEYWORDS_BOOST if kw.lower() in full_text)
+    sap_score = min(sap_hits, 5) / 5
 
-    title_hits = sum(1 for kw in TITLE_KEYWORDS_BOOST if kw.lower() in title)
-    score += 0.4 * (min(title_hits, 3) / 3)
-    max_score += 0.4
+    prev_hits = sum(1 for kw in PREVIOUS_STACK_KEYWORDS_BOOST if kw.lower() in full_text)
+    prev_score = min(prev_hits, 5) / 5
 
-    stack_hits = sum(1 for kw in STACK_KEYWORDS_BOOST if kw.lower() in full_text)
-    score += 0.45 * (min(stack_hits, 5) / 5)
-    max_score += 0.45
+    loc_score = _location_score(location)
+    exp_score = _experience_score(title, description)
+    sal_score = _salary_score(offer)
 
-    location_match = any(loc in location for loc in LOCATION_BOOST)
-    if location_match:
-        score += 0.15
-    max_score += 0.15
+    score = (
+        SCORE_WEIGHTS["sap_master"] * sap_score
+        + SCORE_WEIGHTS["previous_stack"] * prev_score
+        + SCORE_WEIGHTS["location"] * loc_score
+        + SCORE_WEIGHTS["experience"] * exp_score
+        + SCORE_WEIGHTS["salary"] * sal_score
+    )
 
-    return round(min(score / max_score, 1.0), 3) if max_score > 0 else 0.0
+    return round(min(score, 1.0), 3)
 
 
 def classify_profile(offer: dict) -> tuple[str, float]:
