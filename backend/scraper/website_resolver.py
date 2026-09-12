@@ -13,10 +13,11 @@ HTTP 202 (bloqueo/rate-limit) de forma persistente. Bing tolera mejor un
 volumen bajo de peticiones espaciadas; aun así hay que respetar el delay
 entre empresas para no repetir el problema.
 """
+import base64
 import logging
 import random
 import time
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 import requests
 from bs4 import BeautifulSoup
