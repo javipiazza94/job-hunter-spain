@@ -112,7 +112,7 @@ def _parse_offer(raw: dict) -> dict | None:
         "salary_min": int(salary_min) if salary_min else None,
         "salary_max": int(salary_max) if salary_max else None,
         "salary_text": salary_text,
-        "tech_tags": [],
+        "tech_stack": None,
         "source": "manfred",
         "experience_level": _normalise_experience(experience),
     }
