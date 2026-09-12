@@ -10,7 +10,7 @@ _YEAR_PATTERN = re.compile(
     re.IGNORECASE,
 )
 _SINGLE_YEAR = re.compile(
-    r"(?:mínimo|al menos|minimum|min\.?|más de|mas de|more than|>\s*)(\d+)\s*(?:años?|years?)",
+    r"(?:mínimo|al menos|minimum|min\.?|más de|mas de|more than|>)\s*(\d+)\s*(?:años?|years?)",
     re.IGNORECASE,
 )
 
