@@ -122,7 +122,7 @@ def resolve_website(company_name: str) -> str | None:
         if not a:
             continue
         url = _unwrap_bing_redirect(a["href"])
-        if _domain_allowed(url):
+        if _domain_allowed(url) and _domain_matches_name(url, company_name):
             parsed = urlparse(url)
             return f"{parsed.scheme}://{parsed.netloc}"
     return None
