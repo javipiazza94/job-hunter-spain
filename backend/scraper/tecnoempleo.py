@@ -242,4 +242,34 @@ async def run_tecnoempleo(max_pages: int = 3) -> list[dict]:
                     seen_urls.add(o["url"])
                     all_offers.append(o)
     logger.info("Tecnoempleo total: %d unique offers", len(all_offers))
+    all_offers = await _enrich_with_details(all_offers)
     return all_offers
+
+
+async def _enrich_with_details(offers: list[dict]) -> list[dict]:
+    """
+    Fetch the full offer page only for offers that already look promising from the
+    listing card (score_offer >= DETAIL_FETCH_MIN_SCORE) — avoids hammering the site
+    with a detail request per offer when most of them are clearly irrelevant.
+    """
+    candidates = [o for o in offers if o.get("url") and score_offer(o) >= DETAIL_FETCH_MIN_SCORE]
+    logger.info(
+        "Tecnoempleo: fetching full detail for %d/%d offers (card score >= %.2f)",
+        len(candidates), len(offers), DETAIL_FETCH_MIN_SCORE,
+    )
+    if not candidates:
+        return offers
+
+    scraper = TecnoempleoScraper()
+    async with scraper as s:
+        page = await s.new_page()
+        for offer in candidates:
+            try:
+                detail = await s.fetch_offer_detail(page, offer["url"])
+            except Exception as e:
+                logger.debug("Detail fetch failed for %s: %s", offer["url"], e)
+                detail = None
+            if detail:
+                offer.update(detail)
+            await s.random_delay()
+    return offers
