@@ -264,7 +264,7 @@ def send_approved(application_id: str) -> bool:
         else f"Candidatura — {personal.get('name', '')}"
     )
 
-    success = send_email(
+    success, _message_id = send_email(
         to=app["contact_value"],
         subject=subject,
         body=body,
