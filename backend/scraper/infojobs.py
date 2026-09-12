@@ -54,7 +54,7 @@ def _parse_card_html(html: str, base_url: str = INFOJOBS_BASE) -> dict | None:
         "description": description,
         "salary_min": salary_min,
         "salary_max": None,
-        "tech_tags": [],
+        "tech_stack": None,
         "source": "infojobs",
     }
 
