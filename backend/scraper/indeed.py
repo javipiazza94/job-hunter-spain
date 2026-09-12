@@ -130,7 +130,7 @@ def _parse_card(card) -> dict | None:
             "salary_min": salary_min,
             "salary_max": salary_max,
             "salary_text": salary_text,
-            "tech_tags": [],
+            "tech_stack": None,
             "source": "indeed",
         }
     except Exception as e:
