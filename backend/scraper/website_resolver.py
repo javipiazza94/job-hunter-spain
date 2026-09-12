@@ -39,16 +39,6 @@ _BLACKLIST_DOMAINS = {
 }
 
 
-def _unwrap_ddg_redirect(href: str) -> str:
-    """DuckDuckGo a veces envuelve resultados en //duckduckgo.com/l/?uddg=<url>."""
-    if href.startswith("//duckduckgo.com/l/") or "duckduckgo.com/l/" in href:
-        qs = parse_qs(urlparse(href if href.startswith("http") else "https:" + href).query)
-        target = qs.get("uddg")
-        if target:
-            return unquote(target[0])
-    return href
-
-
 def _domain_allowed(url: str) -> bool:
     netloc = urlparse(url).netloc.lower().replace("www.", "")
     if not netloc or "." not in netloc:
@@ -66,25 +56,26 @@ def resolve_website(company_name: str) -> str | None:
 
     for attempt in range(MAX_RETRIES):
         try:
-            resp = requests.post(
-                DDG_HTML_URL, data={"q": query}, headers=headers, timeout=15,
+            resp = requests.get(
+                BING_SEARCH_URL, params={"q": query, "setlang": "es"},
+                headers=headers, timeout=15,
             )
             if resp.status_code == 200:
                 break
-            logger.warning("DDG HTTP %s for %r (attempt %d)", resp.status_code, company_name, attempt + 1)
+            logger.warning("Bing HTTP %s for %r (attempt %d)", resp.status_code, company_name, attempt + 1)
         except requests.RequestException as e:
-            logger.warning("DDG error for %r (attempt %d): %s", company_name, attempt + 1, e)
+            logger.warning("Bing error for %r (attempt %d): %s", company_name, attempt + 1, e)
         if attempt < MAX_RETRIES - 1:
-            time.sleep((2 ** attempt) * random.uniform(2, 4))
+            time.sleep((2 ** attempt) * random.uniform(3, 6))
     else:
         return None
 
     soup = BeautifulSoup(resp.text, "html.parser")
-    for a in soup.select("a.result__a"):
-        href = a.get("href", "")
-        if not href:
+    for h2 in soup.select("li.b_algo h2"):
+        a = h2.find("a", href=True)
+        if not a:
             continue
-        url = _unwrap_ddg_redirect(href)
+        url = a["href"]
         if _domain_allowed(url):
             parsed = urlparse(url)
             return f"{parsed.scheme}://{parsed.netloc}"
