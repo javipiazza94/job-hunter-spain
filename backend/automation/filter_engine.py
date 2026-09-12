@@ -77,7 +77,8 @@ def score_offer(offer: dict) -> float:
     full_text = f"{title} {description} {tech_stack}"
 
     for neg in NEGATIVE_KEYWORDS:
-        if neg.lower() in full_text:
+        # \b requires word boundaries — evita falsos positivos como "cto" dentro de "proyecto"
+        if re.search(rf"\b{re.escape(neg.lower())}\b", full_text):
             return 0.0
 
     sap_hits = sum(1 for kw in SAP_MASTER_KEYWORDS_BOOST if kw.lower() in full_text)
