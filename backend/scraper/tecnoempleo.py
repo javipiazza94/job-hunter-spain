@@ -106,7 +106,7 @@ class TecnoempleoScraper(BaseScraper):
                 "salary_min": salary_min,
                 "salary_max": salary_max,
                 "description": description,
-                "tech_tags": tech_tags,
+                "tech_stack": ", ".join(tech_tags) if tech_tags else None,
                 "source": "tecnoempleo",
             }
         except Exception as e:
