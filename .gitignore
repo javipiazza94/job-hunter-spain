@@ -8,6 +8,7 @@ node_modules/
 .next/
 backend/cv/
 backend/profile.json
+javi_piazza_memoria_profesional.md
 *.log
 .claude/settings.local.json
 backend/sessions/*
