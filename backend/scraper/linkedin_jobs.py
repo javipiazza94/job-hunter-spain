@@ -117,7 +117,7 @@ async def _parse_cards(page: Page, keywords: str, max_offers: int) -> list[dict]
                 "description": None,
                 "salary_min": None,
                 "salary_max": None,
-                "tech_tags": [],
+                "tech_stack": None,
                 "source": "linkedin",
             })
         except Exception as e:
