@@ -250,12 +250,13 @@ def main():
     parser = argparse.ArgumentParser(description="Job Hunter Spain — Scraper Runner")
     parser.add_argument(
         "--source",
-        choices=["seed", "tecnoempleo", "indeed", "manfred", "contacts", "all", "sap", "linkedin-login"],
+        choices=["seed", "tecnoempleo", "indeed", "manfred", "contacts", "all", "sap", "linkedin-login", "resolve-websites"],
         default="seed",
         help="Data source to run",
     )
     parser.add_argument("--dry-run", action="store_true", help="Print results without saving")
     parser.add_argument("--max-pages", type=int, default=3, help="Max pages per keyword")
+    parser.add_argument("--limit", type=int, default=None, help="Max companies (resolve-websites)")
     args = parser.parse_args()
 
     conn = get_conn()
