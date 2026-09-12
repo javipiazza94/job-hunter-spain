@@ -1,16 +1,22 @@
 """
 scraper/website_resolver.py — Resuelve la web oficial de una empresa por nombre,
-vía búsqueda en DuckDuckGo HTML (sin JS, sin API key).
+vía búsqueda en Bing (sin JS, sin API key).
 
 Desbloquea contact_extractor.py: las empresas descubiertas por scraping de
 portales (Tecnoempleo, Manfred, LinkedIn, InfoJobs) solo tienen la URL del
 listado en el portal, no su web real, así que nunca se les puede extraer
 contacto sin esto.
+
+Nota: se probó primero con DuckDuckGo HTML (html.duckduckgo.com) pero un
+burst de ~10 peticiones en pruebas bastó para que empezara a devolver
+HTTP 202 (bloqueo/rate-limit) de forma persistente. Bing tolera mejor un
+volumen bajo de peticiones espaciadas; aun así hay que respetar el delay
+entre empresas para no repetir el problema.
 """
 import logging
 import random
 import time
-from urllib.parse import urlparse, parse_qs, unquote
+from urllib.parse import urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -21,7 +27,7 @@ from scraper.base import USER_AGENTS
 
 logger = logging.getLogger(__name__)
 
-DDG_HTML_URL = "https://html.duckduckgo.com/html/"
+BING_SEARCH_URL = "https://www.bing.com/search"
 
 _BLACKLIST_DOMAINS = {
     "tecnoempleo.com", "indeed.com", "es.indeed.com", "indeed.es",
