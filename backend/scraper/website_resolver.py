@@ -63,6 +63,35 @@ def _domain_allowed(url: str) -> bool:
     return not any(netloc == b or netloc.endswith("." + b) for b in _BLACKLIST_DOMAINS)
 
 
+_NAME_STOPWORDS = {
+    "sl", "sa", "s.l.", "s.a.", "spain", "españa", "iberia", "europe",
+    "group", "grupo", "consulting", "consultores", "training", "services",
+    "servicios", "solutions", "soluciones", "sistemas", "informatica",
+    "informática", "tecnologia", "tecnología", "technologies", "the", "and",
+    "de", "la", "el", "global",
+}
+
+
+def _significant_tokens(name: str) -> list[str]:
+    """Palabras del nombre de empresa útiles para validar que el dominio no sea un match falso."""
+    words = re.findall(r"[a-záéíóúñ0-9]+", name.lower())
+    return [w for w in words if w not in _NAME_STOPWORDS and len(w) >= 4]
+
+
+def _domain_matches_name(url: str, company_name: str) -> bool:
+    """
+    Filtro de sensatez: si el nombre tiene alguna palabra distintiva (>=4 letras),
+    exigir que aparezca en el dominio — evita matches genéricos tipo 'CAS Training' -> cas.org.
+    Nombres compuestos solo por acrónimos/palabras cortas (ej. 'UST', 'HAYS') no tienen
+    palabra distintiva que exigir, así que se aceptan sin este filtro.
+    """
+    tokens = _significant_tokens(company_name)
+    if not tokens:
+        return True
+    netloc = urlparse(url).netloc.lower().replace("www.", "")
+    return any(t in netloc for t in tokens)
+
+
 def resolve_website(company_name: str) -> str | None:
     """Busca la web oficial de una empresa. Devuelve None si no hay match limpio."""
     query = f"{company_name} sitio oficial"
