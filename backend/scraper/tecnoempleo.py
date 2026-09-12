@@ -9,12 +9,20 @@ Selectors verified 2026-06-24 against live site structure:
   Location: div.col-12.col-lg-3.text-gray-700
   Description: span.hidden-md-down
 """
+import json
 import re
 import logging
 from urllib.parse import urlencode
 from playwright.async_api import Page
 from scraper.base import BaseScraper
-from config import TECNOEMPLEO_BASE, TECNOEMPLEO_SEARCH_KEYWORDS, TECNOEMPLEO_LOCATIONS
+from automation.experience_classifier import classify_experience, classify_contract
+from automation.filter_engine import score_offer
+from config import (
+    TECNOEMPLEO_BASE,
+    TECNOEMPLEO_SEARCH_KEYWORDS,
+    TECNOEMPLEO_LOCATIONS,
+    DETAIL_FETCH_MIN_SCORE,
+)
 
 logger = logging.getLogger(__name__)
 
