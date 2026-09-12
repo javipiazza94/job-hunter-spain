@@ -40,6 +40,22 @@ _BLACKLIST_DOMAINS = {
 }
 
 
+def _unwrap_bing_redirect(href: str) -> str:
+    """Bing envuelve resultados orgánicos en bing.com/ck/a?...&u=a1<base64-sin-padding>."""
+    if "bing.com/ck/a" not in href:
+        return href
+    qs = parse_qs(urlparse(href).query)
+    u = qs.get("u")
+    if not u or not u[0].startswith("a1"):
+        return href
+    encoded = u[0][2:]
+    encoded += "=" * (-len(encoded) % 4)
+    try:
+        return base64.urlsafe_b64decode(encoded).decode("utf-8")
+    except Exception:
+        return href
+
+
 def _domain_allowed(url: str) -> bool:
     netloc = urlparse(url).netloc.lower().replace("www.", "")
     if not netloc or "." not in netloc:
