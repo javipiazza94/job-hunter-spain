@@ -47,29 +47,46 @@ MANFRED_API_BASE = "https://www.getmanfred.com/api/v2/public/offers"
 MANFRED_MAX_PAGES = 5
 
 # ── Filter Engine ─────────────────────────────────────────────────────────────
+# Pesos de scoring (deben sumar 1.0). Prioridad: 1) SAP del máster, 2) stack de
+# experiencia previa, 3) ubicación, 4) nivel de experiencia, 5) salario base.
 MIN_RELEVANCE_SCORE = 0.55
 
-STACK_KEYWORDS_BOOST = [
-    "python", "fastapi", "django", "data science", "data scientist",
-    "machine learning", "ml", "llm", "ia", "ai", "inteligencia artificial",
-    "react", "next.js", "nextjs", "typescript", "javascript",
-    "devops", "docker", "kubernetes", "ci/cd",
-    "sap", "sap btp", "sap cloud", "abap",
-    ".net", "dotnet", "c#",
-    "sql", "postgresql", "sqlite", "mongodb",
-    "playwright", "scraping", "automatización",
+SCORE_WEIGHTS = {
+    "sap_master": 0.35,      # SAP S/4HANA Public Cloud + módulos PS/MM/SD/FI (máster) — mayor peso
+    "previous_stack": 0.20,  # Python, C#, SQL, Git, metodología DevOps (trabajos previos)
+    "location": 0.20,        # Sevilla si presencial, remoto si es fuera de Sevilla
+    "experience": 0.15,      # prioridad a ofertas de menos de 2 años de experiencia
+    "salary": 0.10,          # salario base >= SALARY_MIN_BASE
+}
+
+# Máster SAP S/4HANA Public Cloud — módulos PS, MM, SD, FI (mayor peso del scoring)
+SAP_MASTER_KEYWORDS_BOOST = [
+    "sap", "s/4hana", "s4hana", "sap s/4hana", "hana",
+    "sap public cloud", "rise with sap", "sap btp", "sap fiori", "abap",
+    "sap ps", "project system",
+    "sap mm", "materials management",
+    "sap sd", "sales & distribution", "sales and distribution",
+    "sap fi", "financial accounting",
+    "successfactors", "consultor sap", "sap consultant", "consultor funcional",
 ]
 
-TITLE_KEYWORDS_BOOST = [
-    "desarrollador", "developer", "data scientist", "data engineer",
-    "fullstack", "full stack", "backend", "frontend",
-    "devops", "sre", "platform engineer",
-    "sap", "consultor", "consultant",
-    "ingeniero", "engineer", "analista", "analyst",
-    "ml engineer", "ai engineer", "llm", "nlp",
+# Stack de experiencia previa (AIDEA Legal / AQR Systems): Python, C#, SQL, Git, DevOps
+PREVIOUS_STACK_KEYWORDS_BOOST = [
+    "python", "c#", ".net", "dotnet",
+    "sql", "postgresql", "sqlite", "mysql",
+    "git", "github", "gitlab",
+    "devops", "ci/cd", "docker",
 ]
 
-LOCATION_BOOST = ["sevilla", "remoto", "remote", "híbrido", "hibrido", "andalucia"]
+# Ubicación: presencial solo vale si es en Sevilla; fuera de Sevilla solo vale si es remoto
+TARGET_CITY = "sevilla"
+LOCATION_BOOST = ["sevilla", "remoto", "remote", "híbrido", "hibrido", "andalucia"]  # legacy, usado como fallback
+
+# Nivel de experiencia: prioridad a ofertas de menos de 2 años
+EXPERIENCE_PRIORITY_MAX_YEARS = 2
+
+# Salario base mínimo deseado
+SALARY_MIN_BASE = 22000
 
 NEGATIVE_KEYWORDS = [
     "+10 años", "10 years", "c++ senior", "java ee", "cobol",
