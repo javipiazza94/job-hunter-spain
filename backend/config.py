@@ -23,7 +23,8 @@ MAX_RETRIES = 3
 TECNOEMPLEO_BASE = "https://www.tecnoempleo.com"
 TECNOEMPLEO_SEARCH_KEYWORDS = [
     "python", "fastapi", "django", "data scientist",
-    "machine learning", "devops", "react", "next.js", "sap"
+    "machine learning", "devops", "react", "next.js", "sap",
+    "consultor ia", "implantacion ia"
 ]
 TECNOEMPLEO_LOCATIONS = ["Sevilla", "Andalucia", "remoto"]
 
