@@ -49,7 +49,7 @@ def _parse_card_html(html: str, base_url: str = COMPUTRABAJO_BASE) -> dict | Non
         "description": description,
         "salary_min": None,
         "salary_max": None,
-        "tech_tags": [],
+        "tech_stack": None,
         "source": "computrabajo",
     }
 
