@@ -16,6 +16,7 @@ entre empresas para no repetir el problema.
 import base64
 import logging
 import random
+import re
 import time
 from urllib.parse import urlparse, parse_qs
 
