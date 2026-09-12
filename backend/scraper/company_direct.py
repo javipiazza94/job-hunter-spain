@@ -61,7 +61,7 @@ class CompanyDirectScraper(BaseScraper):
                         "description": None,
                         "salary_min": None,
                         "salary_max": None,
-                        "tech_tags": [],
+                        "tech_stack": None,
                         "source": "company_direct",
                     })
             await scraper.random_delay()
