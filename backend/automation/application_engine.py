@@ -329,7 +329,7 @@ def send_pending(limit: int | None = None) -> dict:
     conn.close()
 
     batch = [dict(r) for r in rows]
-    if limit:
+    if limit is not None:
         batch = batch[:limit]
 
     sent, failed = 0, 0
