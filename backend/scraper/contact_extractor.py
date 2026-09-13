@@ -118,6 +118,11 @@ async def _find_external_application_link(page: Page, own_domain: str) -> str | 
             continue
 
         if any(netloc == d or netloc.endswith("." + d) for d in _ATS_DOMAINS):
+            path = urlparse(href).path
+            if not path or path == "/":
+                # Bare root of the ATS vendor's own domain — almost always a
+                # "powered by X" badge, not this company's actual portal.
+                continue
             logger.info("  ATS link found (domain match): %s", href)
             return href
 
