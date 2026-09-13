@@ -143,13 +143,14 @@ export default function Dashboard() {
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
 
   const load = async () => {
-    const [s, c, o, ct, a, p] = await Promise.all([
+    const [s, c, o, ct, a, p, sap] = await Promise.all([
       fetchStats(),
       fetchCompanies(),
       fetchOffers({ limit: 2500 }),
       fetchContacts(),
       fetchApplications(),
       fetchPendingApplications(),
+      fetchOffers({ sap_tagged: true, limit: 200 }),
     ]);
     setStats(s);
     setCompanies(c);
@@ -157,6 +158,7 @@ export default function Dashboard() {
     setContacts(ct);
     setApplications(a);
     setPendingApps(p);
+    setSapOffers(sap);
   };
 
   useEffect(() => { load(); }, []);
