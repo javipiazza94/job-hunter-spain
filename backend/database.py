@@ -113,6 +113,10 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
     _add_column(conn, "job_offers", "contract_type", "TEXT")
     _add_column(conn, "job_offers", "posted_date", "TEXT")
     _add_column(conn, "job_offers", "salary_text", "TEXT")
+    # SAP Public Cloud tier search (Tier 1/2/3 tracked companies)
+    _add_column(conn, "job_offers", "sap_tier", "INTEGER")
+    _add_column(conn, "job_offers", "sap_module", "TEXT")
+    _add_column(conn, "job_offers", "open_to_junior", "INTEGER")
 
 
 def _add_column(conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
