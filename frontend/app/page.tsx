@@ -117,7 +117,8 @@ export default function Dashboard() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
   const [pendingApps, setPendingApps] = useState<PendingApplication[]>([]);
-  const [tab, setTab] = useState<"offers" | "companies" | "contacts" | "applications" | "pending">("offers");
+  const [sapOffers, setSapOffers] = useState<JobOffer[]>([]);
+  const [tab, setTab] = useState<"offers" | "companies" | "contacts" | "applications" | "pending" | "sap">("offers");
   const [selectedOffer, setSelectedOffer] = useState<JobOffer | null>(null);
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
