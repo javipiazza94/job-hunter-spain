@@ -176,10 +176,12 @@ export default function Dashboard() {
     if (offer.is_applied) {
       await unmarkOfferSent(offer.id);
       setOffers(prev => prev.map(o => o.id === offer.id ? { ...o, is_applied: 0 } : o));
+      setSapOffers(prev => prev.map(o => o.id === offer.id ? { ...o, is_applied: 0 } : o));
       setApplications(prev => prev.filter(a => a.job_offer_id !== offer.id));
     } else {
       await markOfferSent(offer.id);
       setOffers(prev => prev.map(o => o.id === offer.id ? { ...o, is_applied: 1 } : o));
+      setSapOffers(prev => prev.map(o => o.id === offer.id ? { ...o, is_applied: 1 } : o));
       setApplications(prev => [{
         id: crypto.randomUUID(),
         company_name: offer.company_name || "Desconocida",
