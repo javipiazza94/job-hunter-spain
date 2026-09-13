@@ -437,6 +437,16 @@ def approve_application(app_id: str):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@app.post("/api/applications/{app_id}/mark-sent-manual")
+def mark_application_sent_manual(app_id: str):
+    from automation.application_engine import mark_sent_manual
+    try:
+        success = mark_sent_manual(app_id)
+        return {"id": app_id, "success": success, "status": "sent"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @app.patch("/api/applications/{app_id}/cover-letter")
 def update_cover_letter(app_id: str, body: dict = Body(...)):
     text = body.get("cover_letter_edited", "")
