@@ -91,6 +91,46 @@ async def _detect_application_form(page: Page) -> str | None:
     return None
 
 
+async def _find_external_application_link(page: Page, own_domain: str) -> str | None:
+    """
+    Look for an outbound link to a known ATS domain (high confidence) or an
+    off-domain link whose href/text suggests it's an application portal
+    (medium confidence). Returns None if nothing matches.
+    """
+    try:
+        links = await page.eval_on_selector_all(
+            "a[href]",
+            "els => els.map(e => ({href: e.href, text: (e.textContent || '').trim()}))",
+        )
+    except Exception as e:
+        logger.debug("Link scan error: %s", e)
+        return None
+
+    candidates_medium: list[str] = []
+    for link in links:
+        href = link.get("href") or ""
+        if not href.startswith("http"):
+            continue
+        netloc = urlparse(href).netloc.lower().replace("www.", "")
+        if not netloc or (own_domain and netloc == own_domain):
+            continue
+        if any(netloc == b or netloc.endswith("." + b) for b in _BLACKLIST_DOMAINS):
+            continue
+
+        if any(netloc == d or netloc.endswith("." + d) for d in _ATS_DOMAINS):
+            logger.info("  ATS link found (domain match): %s", href)
+            return href
+
+        text = (link.get("text") or "").lower()
+        if any(kw in href.lower() or kw in text for kw in _APPLY_KEYWORDS):
+            candidates_medium.append(href)
+
+    if candidates_medium:
+        logger.info("  ATS link found (keyword match, medium confidence): %s", candidates_medium[0])
+        return candidates_medium[0]
+    return None
+
+
 class ContactExtractorScraper(BaseScraper):
     def __init__(self):
         super().__init__(delay_min=2.0, delay_max=5.0)
