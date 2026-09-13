@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Check, X, FileText } from "lucide-react";
-import { approveApplication, rejectApplication, updateCoverLetter, type PendingApplication } from "@/lib/api";
+import { Check, X, FileText, Mail } from "lucide-react";
+import { approveApplication, rejectApplication, updateCoverLetter, markApplicationSentManual, type PendingApplication } from "@/lib/api";
 
 interface PendingCardProps {
   app: PendingApplication;
