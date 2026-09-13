@@ -119,7 +119,7 @@ PROFILE_CONFIDENCE_THRESHOLD = 0.2
 RECONTACT_COOLDOWN_DAYS = 180
 
 # ── Application Engine ────────────────────────────────────────────────────────
-MAX_EMAILS_PER_DAY = 20  # TEMP: subido de 15 a 20 solo el 2026-09-13 para desbloquear la cola de hoy (5 pendientes). Revertir a 15 mañana.
+MAX_EMAILS_PER_DAY = 15
 EMAIL_DELAY_MIN = 30    # seconds between sends
 EMAIL_DELAY_MAX = 120
 
