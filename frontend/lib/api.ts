@@ -111,6 +111,11 @@ export async function rejectApplication(id: string): Promise<{ id: string; statu
   return res.json();
 }
 
+export async function markApplicationSentManual(id: string): Promise<{ id: string; success: boolean; status: string }> {
+  const res = await fetch(`${BASE}/api/applications/${id}/mark-sent-manual`, { method: "POST" });
+  return res.json();
+}
+
 export async function fetchDashboardStats(): Promise<DashboardStats> {
   const res = await fetch(`${BASE}/api/stats/dashboard`);
   return res.json();
