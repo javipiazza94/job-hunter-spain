@@ -309,6 +309,7 @@ export default function Dashboard() {
           {(
             [
               { id: "offers", label: "Ofertas", count: offers.length },
+              { id: "sap", label: "SAP Public Cloud", count: sapOffers.length },
               { id: "companies", label: "Empresas", count: companies.length },
               { id: "contacts", label: "Contactos", count: contacts.length },
               { id: "applications", label: "Candidaturas", count: applications.length },
