@@ -207,6 +207,15 @@ class ContactExtractorScraper(BaseScraper):
                             "value": form_url,
                             "method": "detected",
                         })
+                    else:
+                        ats_link = await _find_external_application_link(page, domain)
+                        if ats_link:
+                            contacts.append({
+                                "company_id": company_id,
+                                "type": "form",
+                                "value": ats_link,
+                                "method": "detected_ats_link",
+                            })
 
             await scraper.random_delay()
         return contacts
