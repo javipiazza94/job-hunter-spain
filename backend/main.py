@@ -132,6 +132,8 @@ def get_offers(
         params.append(contract_type)
     if sap_tagged:
         conditions.append("jo.sap_tier IS NOT NULL")
+    if ds_tagged:
+        conditions.append("jo.ds_tier IS NOT NULL")
     if stack:
         stack_terms = [s.strip() for s in stack.split(",") if s.strip()]
         for term in stack_terms:
