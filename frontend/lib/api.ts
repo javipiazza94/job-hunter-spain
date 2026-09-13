@@ -24,6 +24,7 @@ export interface OfferFilters {
   profile?: string;
   modality?: string;
   location?: string;
+  sap_tagged?: boolean;
   sort_by?: string;
   sort_dir?: string;
   limit?: number;
