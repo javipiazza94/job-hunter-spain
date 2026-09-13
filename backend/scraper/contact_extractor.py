@@ -169,6 +169,15 @@ class ContactExtractorScraper(BaseScraper):
                     "method": "detected",
                 })
                 logger.info("  Form found: %s", form_url)
+            else:
+                ats_link = await _find_external_application_link(page, domain)
+                if ats_link:
+                    contacts.append({
+                        "company_id": company_id,
+                        "type": "form",
+                        "value": ats_link,
+                        "method": "detected_ats_link",
+                    })
 
             # 2) If no application form found yet, try career sub-paths — a form usually
             # lives on a dedicated /careers-style page, not the homepage, even when an
