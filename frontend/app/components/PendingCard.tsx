@@ -154,11 +154,40 @@ export function PendingCard({ app, onAction }: PendingCardProps) {
         />
       </div>
 
-      {isEmailContact && (
+      {isEmailContact && !manualSendStarted && (
         <p className="text-xs text-gray-500">
-          &quot;Enviar manualmente&quot; abre tu cliente de correo con el destinatario, asunto y carta ya rellenos —
-          recuerda adjuntar <span className="font-mono text-gray-400">{cvFile}</span> a mano antes de darle a enviar.
+          &quot;Enviar manualmente&quot; copia la carta al portapapeles y abre tu cliente de correo con el
+          destinatario y asunto ya rellenos — pega la carta y adjunta{" "}
+          <span className="font-mono text-gray-400">{cvFile}</span> a mano antes de darle a enviar.
         </p>
+      )}
+
+      {copyFeedback && !manualSendStarted && (
+        <p className="text-xs text-emerald-400">{copyFeedback}</p>
+      )}
+
+      {manualSendStarted && (
+        <div className="text-xs bg-sky-500/10 border border-sky-500/20 rounded-lg px-3 py-2.5 flex items-center justify-between gap-3 flex-wrap">
+          <span className="text-sky-300">
+            {copyFeedback} · ¿Ya enviaste el correo a {app.contact_value}?
+          </span>
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              onClick={() => setManualSendStarted(false)}
+              disabled={busy}
+              className="px-3 py-1 text-xs font-medium text-gray-400 hover:text-gray-200 disabled:opacity-40"
+            >
+              Todavía no
+            </button>
+            <button
+              onClick={handleConfirmManualSent}
+              disabled={busy}
+              className="px-3 py-1 text-xs font-semibold bg-sky-600 hover:bg-sky-500 text-white rounded-md disabled:opacity-40"
+            >
+              {busy ? "Marcando…" : "Sí, marcar como enviada"}
+            </button>
+          </div>
+        </div>
       )}
 
       <div className="flex flex-wrap justify-end gap-3 pt-2">
@@ -173,7 +202,7 @@ export function PendingCard({ app, onAction }: PendingCardProps) {
           <button
             onClick={handleSendManually}
             disabled={busy}
-            title="Abre tu cliente de correo y marca la candidatura como enviada"
+            title="Copia la carta y abre tu cliente de correo — no marca nada como enviado todavía"
             className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-sky-400 border border-sky-500/20 hover:bg-sky-500/10 rounded-lg transition-colors disabled:opacity-40"
           >
             <Mail className="w-4 h-4" /> Enviar manualmente
