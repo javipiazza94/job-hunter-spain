@@ -264,6 +264,16 @@ export default function Dashboard() {
   });
   const sapNew = sapSorted.filter(o => !o.is_applied);
   const sapTracked = sapSorted.filter(o => o.is_applied);
+  const DS_CATEGORY_ORDER: Record<string, number> = {
+    "LLM/RAG/GenAI": 0, "NLP": 1, "Data Scientist / ML Engineer": 2, "Data Engineer / ETL": 3, "Data Analyst": 4,
+  };
+  const dsSorted = [...dsOffers].sort((a, b) => {
+    const t = (a.ds_tier ?? 9) - (b.ds_tier ?? 9);
+    if (t !== 0) return t;
+    return (DS_CATEGORY_ORDER[a.ds_category ?? ""] ?? 9) - (DS_CATEGORY_ORDER[b.ds_category ?? ""] ?? 9);
+  });
+  const dsNew = dsSorted.filter(o => !o.is_applied);
+  const dsTracked = dsSorted.filter(o => o.is_applied);
 
   return (
     <div className="min-h-screen bg-[#0f0f14] text-gray-300 font-sans selection:bg-indigo-500/30">
