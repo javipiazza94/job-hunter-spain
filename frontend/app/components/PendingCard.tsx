@@ -58,8 +58,29 @@ export function PendingCard({ app, onAction }: PendingCardProps) {
     }
   };
 
+  const handleSendManually = async () => {
+    setError(null);
+    if (!saved) await handleSave();
+    const to = app.contact_value ?? "";
+    const subject = app.job_title ? `Candidatura: ${app.job_title}` : `Candidatura — ${app.company_name ?? ""}`;
+    const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailto, "_blank");
+    setBusy(true);
+    try {
+      const result = await markApplicationSentManual(app.id);
+      if (!result.success) {
+        setError("No se pudo marcar como enviada. Inténtalo de nuevo.");
+        return;
+      }
+      onAction();
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const badge = PROFILE_BADGE[app.cv_profile ?? "ia_dev"] ?? PROFILE_BADGE["ia_dev"];
   const cvFile = app.cv_profile === "sap" ? "cv_sap.pdf" : "cv_ia.pdf";
+  const isEmailContact = !!app.contact_value && app.contact_value.includes("@");
 
   return (
     <div className="glass-card p-5 space-y-4 hover:border-white/20 transition-all">
