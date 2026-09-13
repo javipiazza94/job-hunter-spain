@@ -306,6 +306,59 @@ def send_approved(application_id: str) -> bool:
     return success
 
 
+def send_pending(limit: int | None = None) -> dict:
+    """
+    Send pending_approval applications ordered by relevance_score desc, respecting
+    MAX_EMAILS_PER_DAY (send_approved raises ValueError once the daily limit is hit —
+    caught here and treated as a clean stop, not a failure) and EMAIL_DELAY_MIN/MAX
+    between sends. Returns {"sent": n, "failed": n, "remaining": n}.
+    """
+    import random
+    import time as _time
+    from config import EMAIL_DELAY_MIN, EMAIL_DELAY_MAX
+
+    conn = get_conn()
+    rows = conn.execute(
+        """SELECT a.id, c.name as company, jo.title, jo.relevance_score
+           FROM applications a
+           JOIN companies c ON a.company_id = c.id
+           JOIN job_offers jo ON a.job_offer_id = jo.id
+           WHERE a.status = 'pending_approval'
+           ORDER BY jo.relevance_score DESC"""
+    ).fetchall()
+    conn.close()
+
+    batch = [dict(r) for r in rows]
+    if limit:
+        batch = batch[:limit]
+
+    sent, failed = 0, 0
+    for i, app in enumerate(batch):
+        try:
+            ok = send_approved(app["id"])
+            if ok:
+                sent += 1
+                logger.info("SENT [%s] %s — %s", app["relevance_score"], app["company"], app["title"])
+            else:
+                failed += 1
+                logger.warning("FAILED [%s] %s — %s", app["relevance_score"], app["company"], app["title"])
+        except ValueError as e:
+            logger.info("STOP: %s", e)
+            break
+        if i < len(batch) - 1:
+            _time.sleep(random.uniform(EMAIL_DELAY_MIN, EMAIL_DELAY_MAX))
+
+    remaining_conn = get_conn()
+    remaining = remaining_conn.execute(
+        "SELECT COUNT(*) c FROM applications WHERE status='pending_approval'"
+    ).fetchone()["c"]
+    remaining_conn.close()
+
+    result = {"sent": sent, "failed": failed, "remaining": remaining}
+    logger.info("send_pending summary: %s", result)
+    return result
+
+
 # ── Legacy CLI entry point (kept for backward compatibility) ──────────────────
 
 def main():
@@ -313,14 +366,16 @@ def main():
     parser = argparse.ArgumentParser(description="Job Hunter Spain — Application Engine")
     parser.add_argument(
         "command", nargs="?", default="create-drafts",
-        choices=["create-drafts", "fill-forms"],
-        help="create-drafts: email drafts (default). fill-forms: fill (never submit) SuccessFactors/generic application forms.",
+        choices=["create-drafts", "fill-forms", "send"],
+        help="create-drafts: email drafts (default). fill-forms: fill (never submit) SuccessFactors/generic application forms. send: send pending_approval applications (real emails).",
     )
     parser.add_argument("--dry-run", action="store_true", help="Preview only, no writes / no browser action")
     parser.add_argument("--limit", type=int, default=None, help="Max items this run")
     args = parser.parse_args()
     if args.command == "fill-forms":
         result = fill_forms(limit=args.limit, dry_run=args.dry_run)
+    elif args.command == "send":
+        result = send_pending(limit=args.limit)
     else:
         result = create_drafts(limit=args.limit)
     print(result)
