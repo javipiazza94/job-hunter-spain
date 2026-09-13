@@ -120,6 +120,27 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
     # Data Science / IA tier search (Tier 1/2/3 tracked companies)
     _add_column(conn, "job_offers", "ds_tier", "INTEGER")
     _add_column(conn, "job_offers", "ds_category", "TEXT")
+    # Descarte de ofertas: 'closed' (ya no acepta solicitudes), 'rejected' (candidatura
+    # rechazada), 'expired' (candidatura caducada). Se usa para sacarlas del listado de
+    # Ofertas sin borrar la fila y perder el historial de Candidaturas que la referencia.
+    _add_column(conn, "job_offers", "discard_status", "TEXT DEFAULT NULL")
+
+
+def discard_offer(conn: sqlite3.Connection, job_offer_id: str, reason: str) -> None:
+    """Marca una oferta como descartada (closed/rejected/expired) sin borrarla."""
+    conn.execute(
+        "UPDATE job_offers SET discard_status=? WHERE id=?", (reason, job_offer_id)
+    )
+    conn.commit()
+
+
+def discard_offer_for_application(conn: sqlite3.Connection, application_id: str, reason: str) -> None:
+    """Igual que discard_offer, pero resuelve el job_offer_id a partir de la candidatura."""
+    row = conn.execute(
+        "SELECT job_offer_id FROM applications WHERE id=?", (application_id,)
+    ).fetchone()
+    if row and row["job_offer_id"]:
+        discard_offer(conn, row["job_offer_id"], reason)
 
 
 def _add_column(conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:

@@ -21,6 +21,7 @@ from automation.experience_classifier import classify_experience, classify_contr
 from database import (
     get_conn, init_db, get_all_companies, get_pending_offers, stats as db_stats,
     get_pending_applications, get_history, record_history, get_dashboard_stats,
+    discard_offer_for_application,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -93,6 +94,7 @@ def get_offers(
     location: str | None = None,
     sap_tagged: bool = False,
     ds_tagged: bool = False,
+    include_discarded: bool = False,
     sort_by: str = "relevance_score",
     sort_dir: str = "desc",
     limit: int | None = None,
@@ -107,6 +109,8 @@ def get_offers(
     )
     conditions = []
     params: list = []
+    if not include_discarded:
+        conditions.append("jo.discard_status IS NULL")
     if relevant_only:
         conditions.append("jo.is_relevant = 1")
     if source:
@@ -270,12 +274,14 @@ def get_contacts():
 
 @app.patch("/api/applications/{app_id}/status")
 def update_application_status(app_id: str, status: str):
-    valid = {"sent", "replied", "interview", "rejected", "withdrawn"}
+    valid = {"sent", "replied", "interview", "rejected", "withdrawn", "expired"}
     if status not in valid:
         raise HTTPException(400, f"Invalid status. Must be one of: {valid}")
     conn = get_conn()
     conn.execute("UPDATE applications SET status=? WHERE id=?", (status, app_id))
     conn.commit()
+    if status in ("rejected", "expired"):
+        discard_offer_for_application(conn, app_id, status)
     conn.close()
     return {"id": app_id, "status": status}
 
@@ -468,6 +474,7 @@ def reject_application(app_id: str):
         "UPDATE applications SET status='rejected_manual' WHERE id=?", (app_id,)
     )
     conn.commit()
+    discard_offer_for_application(conn, app_id, "rejected")
     conn.close()
     return {"id": app_id, "status": "rejected_manual"}
 
