@@ -21,6 +21,8 @@ export function PendingCard({ app, onAction }: PendingCardProps) {
   const [saved, setSaved] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [manualSendStarted, setManualSendStarted] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
 
   const handleSave = async () => {
     setBusy(true);
