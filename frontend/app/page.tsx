@@ -243,6 +243,20 @@ export default function Dashboard() {
     hibrido: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
     presencial: "bg-gray-500/10 text-gray-400 border border-gray-500/20",
   };
+  const TIER_BADGE: Record<number, { label: string; className: string }> = {
+    1: { label: "Tier 1", className: "bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20" },
+    2: { label: "Tier 2", className: "bg-sky-500/10 text-sky-400 border border-sky-500/20" },
+    3: { label: "Tier 3", className: "bg-gray-500/10 text-gray-300 border border-gray-500/20" },
+    4: { label: "Fuera de lista", className: "bg-white/5 text-gray-500 border border-white/10" },
+  };
+  const MODULE_ORDER: Record<string, number> = { "PS": 0, "FI-CO": 1, "MM": 2, "SD": 3, "Otro": 4 };
+  const sapSorted = [...sapOffers].sort((a, b) => {
+    const t = (a.sap_tier ?? 9) - (b.sap_tier ?? 9);
+    if (t !== 0) return t;
+    return (MODULE_ORDER[a.sap_module ?? "Otro"] ?? 9) - (MODULE_ORDER[b.sap_module ?? "Otro"] ?? 9);
+  });
+  const sapNew = sapSorted.filter(o => !o.is_applied);
+  const sapTracked = sapSorted.filter(o => o.is_applied);
 
   return (
     <div className="min-h-screen bg-[#0f0f14] text-gray-300 font-sans selection:bg-indigo-500/30">
