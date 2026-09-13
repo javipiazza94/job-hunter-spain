@@ -171,7 +171,10 @@ def fill_forms(limit: int | None = None, dry_run: bool = False) -> dict:
     }
 
     for offer in pending:
-        if limit and results["forms_filled"] >= limit:
+        # Cap on ATTEMPTS, not successes — otherwise a run where every attempt fails
+        # (e.g. wrong ATS target URL) ignores --limit entirely and burns through
+        # every eligible offer, opening/closing a real browser window each time.
+        if limit is not None and (results["forms_filled"] + results["needs_manual_review"]) >= limit:
             break
 
         offer = dict(offer)
