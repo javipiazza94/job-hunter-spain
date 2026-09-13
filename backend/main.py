@@ -91,6 +91,7 @@ def get_offers(
     profile: str | None = None,
     modality: str | None = None,
     location: str | None = None,
+    sap_tagged: bool = False,
     sort_by: str = "relevance_score",
     sort_dir: str = "desc",
     limit: int | None = None,
