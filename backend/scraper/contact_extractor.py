@@ -7,9 +7,22 @@ import logging
 from urllib.parse import urlparse
 from playwright.async_api import Page
 from scraper.base import BaseScraper
+from scraper.website_resolver import _BLACKLIST_DOMAINS
 from database import get_conn, upsert_contact
 
 logger = logging.getLogger(__name__)
+
+# ATS domains beyond the 4 with a dedicated handler in automation/ats_handlers/ —
+# these fall back to the "generic" form filler, but we still want to recognise
+# them as real application portals worth registering as a 'form' contact.
+_ATS_DOMAINS = [
+    "myworkdayjobs.com", "workday.com", "greenhouse.io", "jobs.lever.co",
+    "successfactors.eu", "successfactors.com", "jobs.sap.com", "sapsf.eu", "sapsf.com",
+    "smartrecruiters.com", "personio.de", "personio.com", "bamboohr.com",
+    "teamtailor.com", "recruitee.com", "jazzhr.com", "breezy.hr",
+    "factorialhr.com", "jobvite.com", "icims.com", "taleo.net", "workable.com",
+]
+_APPLY_KEYWORDS = ["apply", "aplicar", "solicitar", "postular", "candidatura"]
 
 EMAIL_PATTERN = re.compile(
     r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
