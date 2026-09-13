@@ -267,6 +267,7 @@ def send_approved(application_id: str) -> bool:
     app = dict(row)
     cv_profile = app.get("cv_profile") or "ia_dev"
     cv = _cv_path_from_profile(cv_profile, profile)
+    cover_letter_docx = _cover_letter_docx_from_profile(cv_profile, profile)
 
     body = app.get("cover_letter_edited") or app.get("cover_letter_used") or ""
     subject = (
@@ -280,6 +281,7 @@ def send_approved(application_id: str) -> bool:
         subject=subject,
         body=body,
         cv_path=cv,
+        cover_letter_path=cover_letter_docx,
         dry_run=False,
     )
 
