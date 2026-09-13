@@ -73,6 +73,17 @@ def _cv_path_from_profile(cv_profile: str, profile: dict) -> Path | None:
     return cv if cv.exists() else None
 
 
+def _cover_letter_docx_from_profile(cv_profile: str, profile: dict) -> Path | None:
+    """Carta de presentación pre-escrita (.docx) según el tipo de puesto — 'es' por defecto para SAP."""
+    docs = profile.get("cover_letter_docx", {})
+    key = "sap_es" if cv_profile == "sap" else "software_ia"
+    rel = docs.get(key) or docs.get("generica", "")
+    if not rel:
+        return None
+    path = Path(__file__).parent.parent / rel
+    return path if path.exists() else None
+
+
 def create_drafts(limit: int | None = None) -> dict:
     """
     Generate pending_approval application drafts without sending any email.
