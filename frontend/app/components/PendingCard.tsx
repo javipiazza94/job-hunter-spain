@@ -60,13 +60,27 @@ export function PendingCard({ app, onAction }: PendingCardProps) {
     }
   };
 
+  // mailto: only carries to/subject — a full cover letter in the body can push some
+  // webmail-registered handlers (e.g. Outlook web) over their URL length limit
+  // (AADSTS90015). The body is copied to the clipboard instead, to paste by hand.
   const handleSendManually = async () => {
     setError(null);
     if (!saved) await handleSave();
+    try {
+      await navigator.clipboard.writeText(body);
+      setCopyFeedback("Carta copiada al portapapeles");
+    } catch {
+      setCopyFeedback("No se pudo copiar automáticamente — cópiala a mano del cuadro de arriba");
+    }
     const to = app.contact_value ?? "";
     const subject = app.job_title ? `Candidatura: ${app.job_title}` : `Candidatura — ${app.company_name ?? ""}`;
-    const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}`;
     window.open(mailto, "_blank");
+    setManualSendStarted(true);
+  };
+
+  const handleConfirmManualSent = async () => {
+    setError(null);
     setBusy(true);
     try {
       const result = await markApplicationSentManual(app.id);
@@ -77,6 +91,7 @@ export function PendingCard({ app, onAction }: PendingCardProps) {
       onAction();
     } finally {
       setBusy(false);
+      setManualSendStarted(false);
     }
   };
 
