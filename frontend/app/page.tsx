@@ -41,6 +41,9 @@ interface JobOffer {
   contract_type: string | null;
   source: string;
   is_applied: number;
+  sap_tier: number | null;
+  sap_module: string | null;
+  open_to_junior: number | null;
 }
 
 interface ContactOffer {
