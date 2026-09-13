@@ -731,6 +731,137 @@ export default function Dashboard() {
           </div>
         )}
 
+        {tab === "ds" && (
+          <div className="space-y-8 animate-fade-in">
+            {/* Nuevas */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-medium text-gray-200">Nuevas</h2>
+                <span className="text-sm font-mono text-indigo-300 bg-indigo-500/10 px-3 py-1 rounded-lg border border-indigo-500/20">
+                  {dsNew.length} sin candidatura
+                </span>
+              </div>
+              {dsNew.length === 0 ? (
+                <div className="glass-card p-10 text-center border-dashed border-white/10 text-sm text-gray-500">
+                  No hay ofertas nuevas de la búsqueda Data Science / IA pendientes de revisar.
+                </div>
+              ) : (
+                <div className="glass-card overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                      <thead className="text-xs text-gray-400 uppercase bg-black/40 border-b border-white/5 tracking-wider">
+                        <tr>
+                          <th className="px-4 py-4 w-10"></th>
+                          <th className="px-6 py-4 font-semibold">Oferta</th>
+                          <th className="px-6 py-4 font-semibold">Empresa</th>
+                          <th className="px-6 py-4 font-semibold">Tier / Categoría</th>
+                          <th className="px-6 py-4 font-semibold">Ubicación</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {dsNew.map((o, idx) => (
+                          <tr key={o.id} className="hover:bg-white/[0.02] transition-colors stagger-row" style={{ animationDelay: `${idx * 0.03}s` }}>
+                            <td className="px-4 py-4 text-center">
+                              <button
+                                onClick={() => handleToggleSent(o)}
+                                disabled={togglingIds.has(o.id)}
+                                title="Marcar como enviada"
+                                className="w-5 h-5 rounded border-2 flex items-center justify-center transition-all border-gray-600 hover:border-green-500 disabled:opacity-40"
+                              />
+                            </td>
+                            <td className="px-6 py-4">
+                              <button onClick={() => setSelectedOffer(o)} className="font-semibold text-left text-gray-200 hover:text-indigo-400 transition-colors inline-flex items-center gap-1">
+                                {o.title} {o.url && <ChevronRight className="w-3 h-3 opacity-50" />}
+                              </button>
+                              <div className="flex items-center gap-2 mt-1.5">
+                                {o.source && <span className={`text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded ${SOURCE_COLORS[o.source] || SOURCE_COLORS.seed}`}>{o.source}</span>}
+                                {o.open_to_junior === 1 && <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Abierto a junior</span>}
+                                {o.salary_text && <span className="text-xs text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2 py-0.5 rounded-md font-mono">{o.salary_text}</span>}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-gray-400 font-medium">{o.company_name || "—"}</td>
+                            <td className="px-6 py-4">
+                              <div className="flex gap-2">
+                                {o.ds_tier != null && (
+                                  <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md ${TIER_BADGE[o.ds_tier]?.className ?? ""}`}>
+                                    {TIER_BADGE[o.ds_tier]?.label ?? `Tier ${o.ds_tier}`}
+                                  </span>
+                                )}
+                                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-white/5 text-gray-400 border border-white/10">
+                                  {o.ds_category || "Otro"}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-gray-300">{o.location || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Pendientes / Enviadas */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-medium text-gray-200">Pendientes de respuesta / Enviadas</h2>
+                <span className="text-sm font-mono text-amber-400 bg-amber-400/10 px-3 py-1 rounded-lg border border-amber-400/20">
+                  {dsTracked.length} con candidatura
+                </span>
+              </div>
+              {dsTracked.length === 0 ? (
+                <div className="glass-card p-10 text-center border-dashed border-white/10 text-sm text-gray-500">
+                  Ninguna de estas ofertas tiene aún candidatura registrada.
+                </div>
+              ) : (
+                <div className="glass-card overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                      <thead className="text-xs text-gray-400 uppercase bg-black/40 border-b border-white/5 tracking-wider">
+                        <tr>
+                          <th className="px-6 py-4 font-semibold">Oferta</th>
+                          <th className="px-6 py-4 font-semibold">Empresa</th>
+                          <th className="px-6 py-4 font-semibold">Tier / Categoría</th>
+                          <th className="px-6 py-4 font-semibold">Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {dsTracked.map((o, idx) => {
+                          const app = applications.find(a => a.job_offer_id === o.id);
+                          return (
+                            <tr key={o.id} onClick={() => app && setSelectedApplication(app)} className="hover:bg-white/[0.02] transition-colors cursor-pointer stagger-row" style={{ animationDelay: `${idx * 0.03}s` }}>
+                              <td className="px-6 py-4 font-semibold text-gray-200">{o.title}</td>
+                              <td className="px-6 py-4 text-gray-400 font-medium">{o.company_name || "—"}</td>
+                              <td className="px-6 py-4">
+                                <div className="flex gap-2">
+                                  {o.ds_tier != null && (
+                                    <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md ${TIER_BADGE[o.ds_tier]?.className ?? ""}`}>
+                                      {TIER_BADGE[o.ds_tier]?.label ?? `Tier ${o.ds_tier}`}
+                                    </span>
+                                  )}
+                                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-white/5 text-gray-400 border border-white/10">
+                                    {o.ds_category || "Otro"}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`px-2 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold ${STATUS_COLORS[app?.status ?? ""] || "bg-gray-500/10 text-gray-400 border border-gray-500/20"}`}>
+                                  {app?.status ?? "sent"}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {tab === "companies" && (
           <div className="glass-card overflow-hidden animate-fade-in">
             <div className="p-4 border-b border-white/5 bg-black/20 flex items-center gap-3">
