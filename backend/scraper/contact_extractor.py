@@ -117,13 +117,20 @@ class ContactExtractorScraper(BaseScraper):
                 })
                 logger.info("  Form found: %s", form_url)
 
-            # 2) If nothing found and we started from website, try career sub-paths
-            if not contacts and not careers_url:
+            # 2) If no application form found yet, try career sub-paths — a form usually
+            # lives on a dedicated /careers-style page, not the homepage, even when an
+            # email was already found there. Skip only if we started from a known careers_url
+            # (we already tried the actual careers page in step 1).
+            has_form = any(c["type"] == "form" for c in contacts)
+            if not has_form and not careers_url:
                 career_url = await _find_career_page(page, website)
                 if career_url:
                     content = await page.content()
                     emails = _extract_emails_from_text(content, domain)
+                    existing_emails = {c["value"] for c in contacts if c["type"] == "email"}
                     for email in emails:
+                        if email in existing_emails:
+                            continue
                         contacts.append({
                             "company_id": company_id,
                             "type": "email",
