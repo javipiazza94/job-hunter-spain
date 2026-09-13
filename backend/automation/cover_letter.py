@@ -39,6 +39,11 @@ def generate(
     seed = variant_seed or (company_name + (job_title or ""))
     variant_index = int(_pick_variant(["0", "1", "2"], seed))
 
+    # Solo experiencia IT relevante en la carta: los puestos previos no técnicos
+    # (hostelería, teleoperador, comunicación, portero de cine) tienen stack=[]
+    # en profile.json y no aportan a una candidatura tech.
+    it_experience = [exp for exp in profile.get("experience", []) if exp.get("stack")]
+
     return tmpl.render(
         company_name=company_name,
         job_title=job_title,
@@ -48,7 +53,7 @@ def generate(
         phone=personal.get("phone", ""),
         linkedin=personal.get("linkedin", ""),
         portfolio=personal.get("portfolio", ""),
-        experience=profile.get("experience", []),
+        experience=it_experience,
         cover_letter_intro=profile.get("cover_letter_intro", "").format(company_name=company_name),
         cover_letter_stack=profile.get("cover_letter_stack", ""),
         cover_letter_closing=profile.get("cover_letter_closing", ""),
