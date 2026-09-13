@@ -44,11 +44,6 @@ Editar `backend/config.py`:
 - `MAX_EMAILS_PER_DAY`: cambiar límite diario (default: 20)
 - `TECNOEMPLEO_SEARCH_KEYWORDS`: keywords para búsqueda en Tecnoempleo
 
-## Base de datos
-
-SQLite en `backend/job_hunter.db` (gitignored).
-Tablas: `companies`, `job_offers`, `contacts`, `applications`.
-
 ## Pendiente (Fase siguiente)
 
 - [ ] Scraper LinkedIn public search
