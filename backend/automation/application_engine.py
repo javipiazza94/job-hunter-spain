@@ -309,6 +309,52 @@ def send_approved(application_id: str) -> bool:
     return success
 
 
+def mark_sent_manual(application_id: str) -> bool:
+    """
+    Mark a pending_approval application as sent without going through SMTP —
+    used when the user sends the email themselves (mailto:) from the dashboard,
+    e.g. because GMAIL_APP_PASSWORD isn't configured or the daily SMTP limit
+    was reached. Does not touch MAX_EMAILS_PER_DAY (that limit only applies to
+    the automated send_approved path).
+    """
+    conn = get_conn()
+
+    row = conn.execute(
+        """SELECT a.*, c.name as company_name, jo.title as job_title,
+                  ct.value as contact_value
+           FROM applications a
+           LEFT JOIN companies c ON a.company_id = c.id
+           LEFT JOIN job_offers jo ON a.job_offer_id = jo.id
+           LEFT JOIN contacts ct ON a.contact_id = ct.id
+           WHERE a.id = ? AND a.status = 'pending_approval'""",
+        (application_id,),
+    ).fetchone()
+
+    if not row:
+        conn.close()
+        raise ValueError(f"Application {application_id} not found or not in pending_approval status.")
+
+    app = dict(row)
+    now = datetime.now().isoformat()
+    conn.execute(
+        "UPDATE applications SET status='sent', method='manual', sent_at=?, approved_at=? WHERE id=?",
+        (now, now, application_id),
+    )
+    domain = app["contact_value"].split("@")[-1] if "@" in (app.get("contact_value") or "") else ""
+    record_history(conn, {
+        "company_name": app.get("company_name", ""),
+        "company_domain": domain,
+        "email_used": app.get("contact_value", ""),
+        "profile_used": app.get("cv_profile") or "ia_dev",
+        "sent_at": now,
+        "notes": "Enviado manualmente desde el dashboard (mailto)",
+        "application_id": application_id,
+    })
+    conn.commit()
+    conn.close()
+    return True
+
+
 def send_pending(limit: int | None = None) -> dict:
     """
     Send pending_approval applications ordered by relevance_score desc, respecting
