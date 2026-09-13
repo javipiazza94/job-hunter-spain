@@ -98,9 +98,12 @@ const SOURCE_COLORS: Record<string, string> = {
   infojobs: "text-orange-400 bg-orange-400/10",
 };
 
-function StatCard({ icon: Icon, label, value, colorClass }: { icon: React.ElementType; label: string; value: number; colorClass: string }) {
+function StatCard({ icon: Icon, label, value, colorClass, active, onClick }: { icon: React.ElementType; label: string; value: number; colorClass: string; active?: boolean; onClick?: () => void }) {
   return (
-    <div className="glass-card p-5 flex items-center gap-4 animate-fade-in">
+    <button
+      onClick={onClick}
+      className={`glass-card p-5 flex items-center gap-4 animate-fade-in text-left w-full transition-all ${onClick ? "cursor-pointer hover:border-white/20 hover:-translate-y-0.5" : ""} ${active ? "ring-2 ring-indigo-500/60 border-indigo-500/40" : ""}`}
+    >
       <div className={`p-3 rounded-xl bg-opacity-10 backdrop-blur-md border border-white/5 ${colorClass}`}>
         <Icon className="w-6 h-6" />
       </div>
@@ -108,7 +111,7 @@ function StatCard({ icon: Icon, label, value, colorClass }: { icon: React.Elemen
         <div className="text-3xl font-bold tracking-tight text-white mb-1">{value}</div>
         <div className="text-sm font-medium text-gray-400">{label}</div>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -136,6 +139,8 @@ export default function Dashboard() {
   const [textSearch, setTextSearch] = useState("");
   const [countryFilter, setCountryFilter] = useState("");
   const [minScore, setMinScore] = useState(0);
+  const [includeApplied, setIncludeApplied] = useState(false);
+  const [applicationStatusFilter, setApplicationStatusFilter] = useState("all");
 
   // Pagination
   const [offersPage, setOffersPage] = useState(0);
@@ -221,8 +226,39 @@ export default function Dashboard() {
     }
   };
 
+  const resetOfferFilters = () => {
+    setTextSearch("");
+    setProfileFilter("all");
+    setModalityFilter("all");
+    setSourceFilter("all");
+    setExperienceFilter("all");
+    setLocationSearch("");
+    setOffersPage(0);
+  };
+
+  const handleStatClick = (which: "companies" | "offers" | "relevant" | "sent" | "contacts") => {
+    if (which === "companies") {
+      setTab("companies");
+    } else if (which === "offers") {
+      resetOfferFilters();
+      setMinScore(0);
+      setIncludeApplied(true);
+      setTab("offers");
+    } else if (which === "relevant") {
+      resetOfferFilters();
+      setMinScore(0.55);
+      setIncludeApplied(true);
+      setTab("offers");
+    } else if (which === "sent") {
+      setApplicationStatusFilter("sent");
+      setTab("applications");
+    } else if (which === "contacts") {
+      setTab("contacts");
+    }
+  };
+
   const filteredOffers = offers.filter(o => {
-    if (o.is_applied) return false;
+    if (!includeApplied && o.is_applied) return false;
     if (textSearch) {
       const q = textSearch.toLowerCase();
       const haystack = `${o.title} ${o.company_name ?? ""} ${o.description ?? ""}`.toLowerCase();
@@ -274,6 +310,9 @@ export default function Dashboard() {
   });
   const dsNew = dsSorted.filter(o => !o.is_applied);
   const dsTracked = dsSorted.filter(o => o.is_applied);
+
+  const applicationStatuses = Array.from(new Set(applications.map(a => a.status))).sort();
+  const filteredApplications = applications.filter(a => applicationStatusFilter === "all" || a.status === applicationStatusFilter);
 
   return (
     <div className="min-h-screen bg-[#0f0f14] text-gray-300 font-sans selection:bg-indigo-500/30">
@@ -327,11 +366,31 @@ export default function Dashboard() {
         {/* Analytics row */}
         {stats && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-5">
-            <StatCard icon={Building2} label="Empresas" value={stats.companies} colorClass="text-blue-400 bg-blue-500" />
-            <StatCard icon={Briefcase} label="Ofertas Totales" value={stats.job_offers} colorClass="text-purple-400 bg-purple-500" />
-            <StatCard icon={Check} label="Relevantes (>55%)" value={stats.relevant_offers} colorClass="text-green-400 bg-green-500" />
-            <StatCard icon={Send} label="Enviadas" value={stats.applications_sent} colorClass="text-orange-400 bg-orange-500" />
-            <StatCard icon={Users} label="Contactos Extraídos" value={stats.contacts_found} colorClass="text-teal-400 bg-teal-500" />
+            <StatCard
+              icon={Building2} label="Empresas" value={stats.companies} colorClass="text-blue-400 bg-blue-500"
+              active={tab === "companies"}
+              onClick={() => handleStatClick("companies")}
+            />
+            <StatCard
+              icon={Briefcase} label="Ofertas Totales" value={stats.job_offers} colorClass="text-purple-400 bg-purple-500"
+              active={tab === "offers" && includeApplied && minScore === 0}
+              onClick={() => handleStatClick("offers")}
+            />
+            <StatCard
+              icon={Check} label="Relevantes (>55%)" value={stats.relevant_offers} colorClass="text-green-400 bg-green-500"
+              active={tab === "offers" && minScore === 0.55}
+              onClick={() => handleStatClick("relevant")}
+            />
+            <StatCard
+              icon={Send} label="Enviadas" value={stats.applications_sent} colorClass="text-orange-400 bg-orange-500"
+              active={tab === "applications" && applicationStatusFilter === "sent"}
+              onClick={() => handleStatClick("sent")}
+            />
+            <StatCard
+              icon={Users} label="Contactos Extraídos" value={stats.contacts_found} colorClass="text-teal-400 bg-teal-500"
+              active={tab === "contacts"}
+              onClick={() => handleStatClick("contacts")}
+            />
           </div>
         )}
 
@@ -454,6 +513,16 @@ export default function Dashboard() {
                   <option value={0.8}>≥ 80%</option>
                 </select>
               </div>
+
+              <label className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-gray-500 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={includeApplied}
+                  onChange={e => { setIncludeApplied(e.target.checked); setOffersPage(0); }}
+                  className="accent-indigo-500"
+                />
+                Incluir enviadas
+              </label>
 
               <div className="ml-auto flex items-center gap-4">
                 <span className="text-sm font-medium text-indigo-300/80 bg-indigo-500/10 px-3 py-1 rounded-lg border border-indigo-500/20">
@@ -981,6 +1050,25 @@ export default function Dashboard() {
 
         {tab === "applications" && (
           <div className="glass-card overflow-hidden animate-fade-in">
+            <div className="p-4 border-b border-white/5 bg-black/20 flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500">Estado</span>
+                <select
+                  value={applicationStatusFilter} onChange={e => setApplicationStatusFilter(e.target.value)}
+                  className="bg-[#16161f] border border-white/10 text-gray-300 text-sm rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500/50 outline-none capitalize"
+                >
+                  <option value="all">Todos</option>
+                  {applicationStatuses.map(s => (
+                    <option key={s} value={s} className="capitalize">{s}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="ml-auto">
+                <span className="text-sm font-medium text-indigo-300/80 bg-indigo-500/10 px-3 py-1 rounded-lg border border-indigo-500/20">
+                  {filteredApplications.length} / {applications.length} candidaturas
+                </span>
+              </div>
+            </div>
             {applications.length === 0 ? (
               <div className="p-16 text-center border-dashed border-white/10">
                 <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
@@ -988,6 +1076,10 @@ export default function Dashboard() {
                 </div>
                 <h3 className="text-lg font-medium text-gray-300 mb-2">Aún no hay candidaturas enviadas</h3>
                 <p className="text-sm text-gray-500">Marca ofertas como enviadas o usa el motor de candidaturas.</p>
+              </div>
+            ) : filteredApplications.length === 0 ? (
+              <div className="p-16 text-center border-dashed border-white/10">
+                <p className="text-sm text-gray-500">Ninguna candidatura coincide con el filtro de estado seleccionado.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -1002,7 +1094,7 @@ export default function Dashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {applications.map((a, idx) => (
+                    {filteredApplications.map((a, idx) => (
                       <tr
                         key={a.id}
                         onClick={() => setSelectedApplication(a)}
