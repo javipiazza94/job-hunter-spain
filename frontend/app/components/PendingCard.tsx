@@ -137,7 +137,14 @@ export function PendingCard({ app, onAction }: PendingCardProps) {
         />
       </div>
 
-      <div className="flex justify-end gap-3 pt-2">
+      {isEmailContact && (
+        <p className="text-xs text-gray-500">
+          &quot;Enviar manualmente&quot; abre tu cliente de correo con el destinatario, asunto y carta ya rellenos —
+          recuerda adjuntar <span className="font-mono text-gray-400">{cvFile}</span> a mano antes de darle a enviar.
+        </p>
+      )}
+
+      <div className="flex flex-wrap justify-end gap-3 pt-2">
         <button
           onClick={handleReject}
           disabled={busy}
@@ -145,6 +152,16 @@ export function PendingCard({ app, onAction }: PendingCardProps) {
         >
           <X className="w-4 h-4" /> Rechazar
         </button>
+        {isEmailContact && (
+          <button
+            onClick={handleSendManually}
+            disabled={busy}
+            title="Abre tu cliente de correo y marca la candidatura como enviada"
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-sky-400 border border-sky-500/20 hover:bg-sky-500/10 rounded-lg transition-colors disabled:opacity-40"
+          >
+            <Mail className="w-4 h-4" /> Enviar manualmente
+          </button>
+        )}
         <button
           onClick={handleApprove}
           disabled={busy}
