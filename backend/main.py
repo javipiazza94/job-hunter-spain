@@ -224,10 +224,12 @@ def get_applications(status: str | None = None):
                FROM applications a
                LEFT JOIN companies c ON a.company_id = c.id
                LEFT JOIN job_offers jo ON a.job_offer_id = jo.id"""
+    order_by = " ORDER BY (a.sent_at IS NULL) ASC, a.sent_at DESC"
     if status:
-        query += " WHERE a.status = ?"
+        query += " WHERE a.status = ?" + order_by
         rows = conn.execute(query, [status]).fetchall()
     else:
+        query += order_by
         rows = conn.execute(query).fetchall()
     conn.close()
     return [dict(r) for r in rows]
