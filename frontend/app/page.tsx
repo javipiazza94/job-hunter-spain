@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Building2, Briefcase, Send, Users, RefreshCw, Play, Check, ChevronRight } from "lucide-react";
-import { fetchStats, fetchCompanies, fetchOffers, fetchContacts, fetchApplications, triggerScraper, fetchPendingApplications, createDrafts, markOfferSent, unmarkOfferSent, type PendingApplication } from "@/lib/api";
+import { fetchStats, fetchCompanies, fetchOffers, fetchContacts, fetchApplications, triggerScraper, fetchPendingApplications, createDrafts, markOfferSent, unmarkOfferSent, updateApplicationStatus, type PendingApplication } from "@/lib/api";
 import { PendingCard } from "@/app/components/PendingCard";
 
 interface Stats {
@@ -87,7 +87,11 @@ const STATUS_COLORS: Record<string, string> = {
   rejected: "bg-red-500/10 text-red-400 border border-red-500/20",
   pending: "bg-gray-500/10 text-gray-400 border border-gray-500/20",
   withdrawn: "bg-gray-500/10 text-gray-500 border border-gray-500/20",
+  expired: "bg-gray-500/10 text-gray-500 border border-gray-500/20",
 };
+
+// Matches the `valid` set in backend/main.py::update_application_status
+const APPLICATION_STATUSES = ["sent", "replied", "interview", "rejected", "withdrawn", "expired"];
 
 const SOURCE_COLORS: Record<string, string> = {
   tecnoempleo: "text-blue-400 bg-blue-400/10",
@@ -210,6 +214,12 @@ export default function Dashboard() {
       setTab("applications");
     }
     setTogglingIds(prev => { const s = new Set(prev); s.delete(offer.id); return s; });
+  };
+
+  const handleStatusChange = async (appId: string, newStatus: string) => {
+    await updateApplicationStatus(appId, newStatus);
+    setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus } : a));
+    setSelectedApplication(prev => prev && prev.id === appId ? { ...prev, status: newStatus } : prev);
   };
 
   const handleApply = async () => {
@@ -1308,10 +1318,16 @@ export default function Dashboard() {
               </button>
             </div>
             <div className="p-6 flex flex-col gap-4">
-              <div className="flex flex-wrap gap-2">
-                <span className={`px-2 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold ${STATUS_COLORS[selectedApplication.status] || "bg-gray-500/10 text-gray-400 border border-gray-500/20"}`}>
-                  {selectedApplication.status}
-                </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={selectedApplication.status}
+                  onChange={e => handleStatusChange(selectedApplication.id, e.target.value)}
+                  className={`px-2 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold outline-none cursor-pointer ${STATUS_COLORS[selectedApplication.status] || "bg-gray-500/10 text-gray-400 border border-gray-500/20"}`}
+                >
+                  {APPLICATION_STATUSES.map(s => (
+                    <option key={s} value={s} className="bg-[#16161f] text-gray-200 normal-case">{s}</option>
+                  ))}
+                </select>
                 {selectedApplication.offer_source && (
                   <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded ${SOURCE_COLORS[selectedApplication.offer_source] || SOURCE_COLORS.seed}`}>
                     {selectedApplication.offer_source}
