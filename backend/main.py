@@ -94,6 +94,7 @@ def get_offers(
     sort_by: str = "relevance_score",
     sort_dir: str = "desc",
     limit: int | None = None,
+    include_inactive: bool = False,
 ):
     conn = get_conn()
     query = (
@@ -105,6 +106,8 @@ def get_offers(
     )
     conditions = []
     params: list = []
+    if not include_inactive:
+        conditions.append("COALESCE(jo.is_active, 1) = 1")
     if relevant_only:
         conditions.append("jo.is_relevant = 1")
     if source:
@@ -238,7 +241,7 @@ def get_contacts():
     """).fetchall()
     offers_rows = conn.execute("""
         SELECT id, company_id, title, url, relevance_score, location
-        FROM job_offers WHERE is_relevant = 1
+        FROM job_offers WHERE is_relevant = 1 AND COALESCE(is_active, 1) = 1
         ORDER BY relevance_score DESC
     """).fetchall()
     conn.close()
