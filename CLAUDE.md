@@ -29,6 +29,18 @@ python -m automation.application_engine --dry-run
 python -m automation.application_engine --limit 10
 ```
 
+## Refresco diario de ofertas (15:01)
+
+`automation/refresh_offers.py` busca ofertas nuevas con los scrapers y marca `is_active=0` las que ya no existen (404/cerradas; no borra nada). Ofertas no verificables y no vistas en 60 días también se marcan inactivas.
+
+```bash
+cd backend && python -m automation.refresh_offers --dry-run   # prueba sin escribir
+# cron (máquina en hora de Madrid), todos los días a las 15:01:
+1 15 * * * cd /ruta/job-hunter-spain/backend && .venv/bin/python -m automation.refresh_offers >> refresh.log 2>&1
+```
+
+La API oculta las inactivas (`/api/offers?include_inactive=true` para verlas).
+
 ## Antes de enviar emails
 
 1. Añade tu App Password de Gmail en `.env`:

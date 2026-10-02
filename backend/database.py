@@ -113,6 +113,9 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
     _add_column(conn, "job_offers", "contract_type", "TEXT")
     _add_column(conn, "job_offers", "posted_date", "TEXT")
     _add_column(conn, "job_offers", "salary_text", "TEXT")
+    _add_column(conn, "job_offers", "is_active", "INTEGER DEFAULT 1")
+    _add_column(conn, "job_offers", "last_checked_at", "TEXT")
+    _add_column(conn, "job_offers", "inactive_reason", "TEXT")
 
 
 def _add_column(conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
@@ -174,7 +177,8 @@ def upsert_job_offer(conn: sqlite3.Connection, data: dict) -> str:
             """UPDATE job_offers SET title=?, description=COALESCE(?,description),
                location=COALESCE(?,location), salary_min=COALESCE(?,salary_min),
                salary_max=COALESCE(?,salary_max), tech_stack=COALESCE(?,tech_stack),
-               is_relevant=?, relevance_score=?, scraped_at=?
+               is_relevant=?, relevance_score=?, scraped_at=?,
+               is_active=1, inactive_reason=NULL
                WHERE id=?""",
             (data["title"], data.get("description"), data.get("location"),
              data.get("salary_min"), data.get("salary_max"), data.get("tech_stack"),
@@ -243,6 +247,7 @@ def get_pending_offers(conn: sqlite3.Connection) -> list[sqlite3.Row]:
            FROM job_offers jo
            JOIN companies c ON jo.company_id = c.id
            WHERE jo.is_relevant = 1
+             AND COALESCE(jo.is_active, 1) = 1
              AND jo.id NOT IN (SELECT job_offer_id FROM applications WHERE job_offer_id IS NOT NULL)
            ORDER BY jo.relevance_score DESC""",
     ).fetchall()
@@ -347,7 +352,7 @@ def stats(conn: sqlite3.Connection) -> dict:
     return {
         "companies": conn.execute("SELECT COUNT(*) FROM companies").fetchone()[0],
         "job_offers": conn.execute("SELECT COUNT(*) FROM job_offers").fetchone()[0],
-        "relevant_offers": conn.execute("SELECT COUNT(*) FROM job_offers WHERE is_relevant=1").fetchone()[0],
+        "relevant_offers": conn.execute("SELECT COUNT(*) FROM job_offers WHERE is_relevant=1 AND COALESCE(is_active, 1)=1").fetchone()[0],
         "applications_sent": conn.execute("SELECT COUNT(*) FROM applications WHERE status='sent'").fetchone()[0],
         "contacts_found": conn.execute("SELECT COUNT(*) FROM contacts").fetchone()[0],
     }
